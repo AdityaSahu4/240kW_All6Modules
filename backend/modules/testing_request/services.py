@@ -1,4 +1,7 @@
 # services.py
+# backend\modules\testing_request\services.py
+import os
+from pathlib import Path
 from sqlalchemy.orm import Session
 from .models import (
     TestingRequest,
@@ -87,6 +90,63 @@ def save_technical_documents(
         db.add(td)
 
     db.commit()
+
+def save_uploaded_files(
+    db: Session,
+    testing_request_id: int,
+    files: list,
+    doc_types: list
+):
+    """
+    Save uploaded files to backend/database/upload/testing_requests/{request_id}/
+    and store file metadata in database
+    """
+    # Get the absolute path to the backend directory
+    current_file = Path(__file__).resolve()
+    backend_dir = current_file.parent.parent.parent  # Go up to backend/
+    
+    # Create upload directory if it doesn't exist
+    base_upload_dir = backend_dir / "database" / "upload" / "testing_requests"
+    request_upload_dir = base_upload_dir / str(testing_request_id)
+    request_upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    saved_files = []
+    
+    for file, doc_type in zip(files, doc_types):
+        # Generate unique filename to prevent conflicts
+        original_filename = file.filename
+        file_extension = Path(original_filename).suffix
+        
+        # Create a safe filename: {doc_type}_{original_name}
+        safe_filename = f"{doc_type}_{original_filename}"
+        file_path = request_upload_dir / safe_filename
+        
+        # Save the file
+        with open(file_path, "wb") as buffer:
+            content = file.file.read()
+            buffer.write(content)
+        
+        # Store relative path in database (relative to backend/)
+        relative_path = str(file_path.relative_to(backend_dir)).replace("\\", "/")
+        
+        # Create database record
+        td = TechnicalDocument(
+            testing_request_id=testing_request_id,
+            doc_type=doc_type,
+            file_name=original_filename,
+            file_path=relative_path,
+            file_size=len(content)
+        )
+        db.add(td)
+        saved_files.append({
+            "doc_type": doc_type,
+            "file_name": original_filename,
+            "file_path": relative_path,
+            "file_size": len(content)
+        })
+    
+    db.commit()
+    return saved_files
 
 def save_testing_requirements(db: Session, testing_request_id: int, payload: TestingRequirementsSchema):
     tr = db.query(TestingRequirements).filter(

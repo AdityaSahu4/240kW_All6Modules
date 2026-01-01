@@ -17,6 +17,7 @@ function TechnicalDocuments({ formData, updateFormData }) {
         uploadedDocs: {
           ...formData.uploadedDocs,
           [docId]: {
+            file: file,  // Store the actual File object
             name: file.name,
             size: file.size,
             type: file.type,

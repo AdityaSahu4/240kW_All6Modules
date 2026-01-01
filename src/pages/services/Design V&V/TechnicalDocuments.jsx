@@ -17,6 +17,7 @@ function TechnicalDocuments({ formData, updateFormData }) {
         uploadedDocs: {
           ...formData.uploadedDocs,
           [docId]: {
+            file: file,  // Store the actual File object
             name: file.name,
             size: file.size,
             type: file.type,
@@ -56,7 +57,7 @@ function TechnicalDocuments({ formData, updateFormData }) {
           {documents.map((doc) => {
             const Icon = doc.icon
             const uploaded = formData.uploadedDocs?.[doc.id]
-            
+
             return (
               <div
                 key={doc.id}
@@ -66,7 +67,7 @@ function TechnicalDocuments({ formData, updateFormData }) {
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getColorClasses(doc.color)}`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">{doc.name}</span>

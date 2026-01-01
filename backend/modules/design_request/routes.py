@@ -1,6 +1,7 @@
 # routes.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from typing import List
 from core.database import get_db
 from . import services, schemas
 from modules.design_request.models import DesignRequest
@@ -32,6 +33,28 @@ def save_product(
 ):
     services.save_design_product_details(db, design_request_id, payload)
     return {"status": "saved"}
+
+@router.post("/{design_request_id}/upload-documents")
+async def upload_documents(
+    design_request_id: int,
+    files: List[UploadFile] = File(...),
+    doc_types: List[str] = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload technical documents for a design request.
+    Files are stored in backend/database/upload/design_requests/{request_id}/
+    """
+    try:
+        saved_files = services.save_design_uploaded_files(
+            db,
+            design_request_id,
+            files,
+            doc_types
+        )
+        return {"status": "success", "files": saved_files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload files: {str(e)}")
 
 @router.post("/{design_request_id}/documents")
 def save_documents(

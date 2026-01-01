@@ -3,8 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.database import engine, Base
 from modules.testing_request.routes import router as testing_router
 from modules.design_request.routes import router as design_router
+from modules.calibration_request.routes import router as calibration_router
+from modules.certification_request.routes import router as certification_router
+from modules.debugging_request.routes import router as debugging_router
+from modules.simulation_request.routes import router as simulation_router
 
-app = FastAPI(title="Testing & Design Request Backend")
+app = FastAPI(title="Compliance Services Platform - All Modules")
 
 # ✅ ADD CORS (THIS FIXES EVERYTHING)
 app.add_middleware(
@@ -17,6 +21,10 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 
+# Include all service routers
 app.include_router(testing_router)
 app.include_router(design_router)
-
+app.include_router(calibration_router)
+app.include_router(certification_router)
+app.include_router(debugging_router)
+app.include_router(simulation_router)

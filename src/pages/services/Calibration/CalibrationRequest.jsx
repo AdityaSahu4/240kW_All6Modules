@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, Building2, Upload, Cloud, Zap, ChevronDown } from 'lucide-react'
+import { Settings, Building2, Upload, Cloud, Zap, ChevronDown, FileText, X } from 'lucide-react'
 
 function CalibrationRequest({ formData, updateFormData }) {
   const [calibrationType, setCalibrationType] = useState(formData.calibrationType || 'instrument')
@@ -18,7 +18,8 @@ function CalibrationRequest({ formData, updateFormData }) {
   const [urgentService, setUrgentService] = useState(formData.urgentService || false)
   const [specialInstructions, setSpecialInstructions] = useState(formData.specialInstructions || '')
   const [uploadedFiles, setUploadedFiles] = useState(formData.uploadedCalibrationFiles || [])
-  
+  const [additionalDocuments, setAdditionalDocuments] = useState(formData.additionalDocuments || [])
+
   // Chamber-specific state
   const [emcFrequencyRange, setEmcFrequencyRange] = useState(formData.emcFrequencyRange || '30 MHz - 6 GHz')
   const [nsaRange, setNsaRange] = useState(formData.nsaRange || '')
@@ -125,16 +126,44 @@ function CalibrationRequest({ formData, updateFormData }) {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || [])
+
+    if (files.length === 0) return
+
     const newFiles = files.map(file => ({
       id: Date.now() + Math.random(),
       name: file.name,
       size: file.size,
       type: file.type,
-      file: file
+      file: file  // Store the actual File object
     }))
+
     const updated = [...uploadedFiles, ...newFiles]
     setUploadedFiles(updated)
     updateFormData({ uploadedCalibrationFiles: updated })
+
+    // Clear the input so the same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleAdditionalDocumentsUpload = (e) => {
+    const files = Array.from(e.target.files || [])
+
+    if (files.length === 0) return
+
+    const newFiles = files.map(file => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      file: file  // Store the actual File object
+    }))
+
+    const updated = [...additionalDocuments, ...newFiles]
+    setAdditionalDocuments(updated)
+    updateFormData({ additionalDocuments: updated })
+
+    // Clear the input so the same file can be selected again
+    e.target.value = ''
   }
 
   const updateField = (field, value) => {
@@ -159,16 +188,14 @@ function CalibrationRequest({ formData, updateFormData }) {
         <div className="grid md:grid-cols-2 gap-4">
           <button
             onClick={() => handleCalibrationTypeChange('instrument')}
-            className={`p-6 border-2 rounded-xl text-left transition-all ${
-              calibrationType === 'instrument'
-                ? 'border-blue-600 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
+            className={`p-6 border-2 rounded-xl text-left transition-all ${calibrationType === 'instrument'
+              ? 'border-blue-600 bg-blue-50'
+              : 'border-gray-200 hover:border-gray-300'
+              }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                calibrationType === 'instrument' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${calibrationType === 'instrument' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                }`}>
                 <Settings className="w-6 h-6" />
               </div>
               <div className="flex-1">
@@ -182,16 +209,14 @@ function CalibrationRequest({ formData, updateFormData }) {
 
           <button
             onClick={() => handleCalibrationTypeChange('chamber')}
-            className={`p-6 border-2 rounded-xl text-left transition-all ${
-              calibrationType === 'chamber'
-                ? 'border-blue-600 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
+            className={`p-6 border-2 rounded-xl text-left transition-all ${calibrationType === 'chamber'
+              ? 'border-blue-600 bg-blue-50'
+              : 'border-gray-200 hover:border-gray-300'
+              }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                calibrationType === 'chamber' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-              }`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${calibrationType === 'chamber' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                }`}>
                 <Building2 className="w-6 h-6" />
               </div>
               <div className="flex-1">
@@ -330,20 +355,63 @@ function CalibrationRequest({ formData, updateFormData }) {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
               <Cloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-              <p className="text-sm text-gray-500 mb-4">PDF, DOC up to 10MB</p>
+              <p className="text-sm text-gray-500 mb-4">PDF, DOC up to 10MB • Multiple files supported</p>
               <label className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
-                Choose File
+                Choose File(s)
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={handleFileUpload}
+                  multiple
                   className="hidden"
                 />
               </label>
+              {uploadedFiles && uploadedFiles.length > 0 && (
+                <p className="text-sm text-green-600 mt-3 font-medium">
+                  ✓ {uploadedFiles.length} file(s) selected
+                </p>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Uploaded Files Display */}
+      {uploadedFiles && uploadedFiles.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-purple-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Uploaded Files</h2>
+          </div>
+
+          <div className="space-y-2">
+            {uploadedFiles.map((file) => (
+              <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const updated = uploadedFiles.filter(f => f.id !== file.id)
+                    setUploadedFiles(updated)
+                    updateFormData({ uploadedCalibrationFiles: updated })
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Remove file"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Define Calibration Scope */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -383,10 +451,10 @@ function CalibrationRequest({ formData, updateFormData }) {
                 <label key={param} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={calibrationType === 'instrument' 
+                    checked={calibrationType === 'instrument'
                       ? specificParameters.includes(param)
                       : chamberParameters.includes(param)}
-                    onChange={() => calibrationType === 'instrument' 
+                    onChange={() => calibrationType === 'instrument'
                       ? handleParameterToggle(param)
                       : handleChamberParameterToggle(param)}
                     className="w-4 h-4"
@@ -403,63 +471,63 @@ function CalibrationRequest({ formData, updateFormData }) {
       {calibrationType === 'instrument' ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Instrument Calibration Parameters</h2>
-        
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">General Electrical Parameters</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Voltage Range (AC & DC)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., 0-1000V"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  onChange={(e) => updateField('voltageRange', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Current Range (AC & DC)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., 0-10A"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  onChange={(e) => updateField('currentRange', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Frequency Range
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., 10Hz-1MHz"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  onChange={(e) => updateField('frequencyRange', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Power Range (W/VA/VAR)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., 0-10kW"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  onChange={(e) => updateField('powerRange', e.target.value)}
-                />
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-4">General Electrical Parameters</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Voltage Range (AC & DC)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 0-1000V"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => updateField('voltageRange', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Current Range (AC & DC)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 0-10A"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => updateField('currentRange', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Frequency Range
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 10Hz-1MHz"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => updateField('frequencyRange', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Power Range (W/VA/VAR)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 0-10kW"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onChange={(e) => updateField('powerRange', e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Chamber Calibration Parameters</h2>
-          
+
           <div className="space-y-6">
             {/* EMC / RF Chamber Parameters */}
             <div className="border border-gray-200 rounded-lg p-4">
@@ -837,24 +905,65 @@ function CalibrationRequest({ formData, updateFormData }) {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
               <Cloud className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-              <p className="text-sm text-gray-500">PDF, DOC up to 10MB</p>
-              <label className="inline-block mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
-                Choose File
+              <p className="text-sm text-gray-500 mb-4">PDF, DOC up to 10MB • Multiple files supported</p>
+              <label className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
+                Choose File(s)
                 <input
                   type="file"
                   multiple
                   accept=".pdf,.doc,.docx"
-                  onChange={handleFileUpload}
+                  onChange={handleAdditionalDocumentsUpload}
                   className="hidden"
                 />
               </label>
+              {additionalDocuments && additionalDocuments.length > 0 && (
+                <p className="text-sm text-green-600 mt-3 font-medium">
+                  ✓ {additionalDocuments.length} file(s) selected
+                </p>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Additional Documents Display */}
+      {additionalDocuments && additionalDocuments.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Additional Documents</h2>
+          </div>
+
+          <div className="space-y-2">
+            {additionalDocuments.map((file) => (
+              <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const updated = additionalDocuments.filter(f => f.id !== file.id)
+                    setAdditionalDocuments(updated)
+                    updateFormData({ additionalDocuments: updated })
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Remove file"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export default CalibrationRequest
-

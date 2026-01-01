@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, Edit, Settings, Target, List, Upload, Cloud, CheckCircle, HelpCircle, User, MapPin, Phone, Mail, Send } from 'lucide-react'
+import { FileText, Edit, Settings, Target, List, Upload, Cloud, CheckCircle, HelpCircle, User, MapPin, Phone, Mail, Send, X } from 'lucide-react'
 
 function CalibrationReview({ formData, updateFormData, onEdit }) {
   const [confirmations, setConfirmations] = useState({
@@ -21,16 +21,23 @@ function CalibrationReview({ formData, updateFormData, onEdit }) {
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || [])
+
+    if (files.length === 0) return
+
     const newFiles = files.map(file => ({
       id: Date.now() + Math.random(),
       name: file.name,
       size: file.size,
       type: file.type,
-      file: file
+      file: file  // Store the actual File object
     }))
+
     const updated = [...uploadedFinalDocs, ...newFiles]
     setUploadedFinalDocs(updated)
     updateFormData({ uploadedFinalDocs: updated })
+
+    // Clear the input so the same file can be selected again
+    e.target.value = ''
   }
 
   const formatFileSize = (bytes) => {
@@ -176,7 +183,7 @@ function CalibrationReview({ formData, updateFormData, onEdit }) {
                 {formData.calibrationType === 'instrument' ? 'Instrument Type' : 'Chamber Type'}
               </label>
               <div className="mt-1 text-gray-900">
-                {formData.calibrationType === 'instrument' 
+                {formData.calibrationType === 'instrument'
                   ? (formData.instrumentType || 'Not specified')
                   : (formData.chamberType || 'Not specified')}
               </div>
@@ -297,7 +304,7 @@ function CalibrationReview({ formData, updateFormData, onEdit }) {
             Supported formats: PDF, DOC, JPG, PNG (Max 10MB each)
           </p>
           <label className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors cursor-pointer">
-            Choose Files
+            Choose File(s)
             <input
               type="file"
               multiple
@@ -306,6 +313,11 @@ function CalibrationReview({ formData, updateFormData, onEdit }) {
               className="hidden"
             />
           </label>
+          {uploadedFinalDocs && uploadedFinalDocs.length > 0 && (
+            <p className="text-sm text-green-600 mt-3 font-medium">
+              ✓ {uploadedFinalDocs.length} file(s) selected
+            </p>
+          )}
         </div>
 
         {uploadedFinalDocs.length > 0 && (
@@ -315,13 +327,24 @@ function CalibrationReview({ formData, updateFormData, onEdit }) {
                 key={file.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
               >
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-600" />
-                  <span className="text-sm text-gray-900">{file.name}</span>
-                  <span className="text-xs text-gray-500">
-                    ({formatFileSize(file.size)})
-                  </span>
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => {
+                    const updated = uploadedFinalDocs.filter(f => f.id !== file.id)
+                    setUploadedFinalDocs(updated)
+                    updateFormData({ uploadedFinalDocs: updated })
+                  }}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Remove file"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>

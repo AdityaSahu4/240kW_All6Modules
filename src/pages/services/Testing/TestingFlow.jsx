@@ -171,21 +171,38 @@ function TestingFlow() {
       // STEP 2 – Technical Documents
       if (currentStep === 1) {
         try {
-          const documentsPayload = Object.entries(formData.uploadedDocs).map(
-            ([docType, file]) => ({
-              doc_type: docType,
-              file_name: file.name || file,
-              file_path: "",   // placeholder for now
-              file_size: file.size || 0
-            })
-          )
+          // Check if there are any documents to upload
+          const uploadedDocs = formData.uploadedDocs || {}
+          const docEntries = Object.entries(uploadedDocs)
 
-          await saveTechnicalDocuments(testingRequestId, {
-            documents: documentsPayload
-          })
+          if (docEntries.length > 0) {
+            // Create FormData for file upload
+            const formData = new FormData()
+
+            // Add files and their types
+            docEntries.forEach(([docType, docData]) => {
+              if (docData.file) {
+                formData.append('files', docData.file)
+                formData.append('doc_types', docType)
+              }
+            })
+
+            // Upload files to the new endpoint
+            const response = await api.post(
+              `/testing-request/${testingRequestId}/upload-documents`,
+              formData,
+              {
+                headers: {
+                  'Content-Type': 'multipart/form-data',
+                },
+              }
+            )
+
+            console.log('Files uploaded successfully:', response.data)
+          }
         } catch (err) {
-          console.error("Failed to save technical documents", err)
-          alert("Failed to save documents")
+          console.error("Failed to upload technical documents", err)
+          alert("Failed to upload documents. Please try again.")
           return
         }
       }
