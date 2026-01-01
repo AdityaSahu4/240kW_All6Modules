@@ -1,1 +1,49 @@
-node_modules
+# ======================
+# PYTHON
+# ======================
+__pycache__/
+**/__pycache__/
+*.pyc
+*.py[cod]
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Database files (local only)
+*.db
+
+# Logs
+*.log
+
+# ======================
+# NODE / FRONTEND
+# ======================
+node_modules/
+dist/
+build/
+.vite/
+
+# ======================
+# TEST / COVERAGE
+# ======================
+.coverage
+htmlcov/
+
+# ======================
+# OS / EDITOR
+# ======================
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+# ======================
+# ZIP / TEMP FILES
+# ======================
+*.zip
+*.tar
+*.tar.gz
