@@ -5,15 +5,12 @@ import { CheckCircle, FileText, ArrowLeft, Clock } from 'lucide-react'
 function CertificationSubmissionSuccess({ formData }) {
   const navigate = useNavigate()
 
-  const uploadedDocuments = formData?.uploadedCertDocs ? Object.values(formData.uploadedCertDocs) : [
-    { name: 'Professional_Certificate.pdf', type: 'pdf' },
-    { name: 'Identity_Verification.pdf', type: 'pdf' },
-    { name: 'abcd.pdf', type: 'pdf' },
-    { name: 'abcd.jpg', type: 'jpg' },
-  ]
+  const uploadedDocuments = Array.isArray(formData?.uploadedCertDocs)
+    ? formData.uploadedCertDocs
+    : []
 
-  const getFileIcon = (fileName) => {
-    const ext = fileName.split('.').pop()?.toLowerCase()
+  const getFileIconColor = (fileName) => {
+    const ext = fileName?.split('.').pop()?.toLowerCase()
     if (ext === 'pdf') return 'text-red-600'
     if (['jpg', 'jpeg', 'png'].includes(ext)) return 'text-blue-600'
     return 'text-gray-600'
@@ -29,29 +26,17 @@ function CertificationSubmissionSuccess({ formData }) {
               <div className="space-y-4">
                 {[
                   { title: 'Certification Documents', completed: true },
-                  { title: 'Submission Review', completed: true, active: true },
+                  { title: 'Submission Review', completed: true },
                 ].map((step, index) => (
                   <div
                     key={index}
                     className="flex items-start gap-3"
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      step.active
-                        ? 'bg-blue-600 text-white'
-                        : step.completed
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-300 text-gray-600'
-                    }`}>
-                      {step.completed ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <span className="text-sm font-medium">{index + 1}</span>
-                      )}
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-500 text-white">
+                      <CheckCircle className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                      <div className={`text-sm font-medium ${
-                        step.active ? 'text-gray-900' : 'text-gray-600'
-                      }`}>
+                      <div className="text-sm font-medium text-gray-900">
                         {step.title}
                       </div>
                     </div>
@@ -92,17 +77,26 @@ function CertificationSubmissionSuccess({ formData }) {
                   <h2 className="text-xl font-bold text-gray-900">Uploaded Documents</h2>
                 </div>
                 
-                <div className="space-y-2">
-                  {uploadedDocuments.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200"
-                    >
-                      <FileText className={`w-5 h-5 ${getFileIcon(doc.name)}`} />
-                      <span className="text-sm text-gray-900">{doc.name}</span>
-                    </div>
-                  ))}
-                </div>
+                {uploadedDocuments.length > 0 ? (
+                  <div className="space-y-2">
+                    {uploadedDocuments.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200"
+                      >
+                        <FileText className={`w-5 h-5 ${getFileIconColor(doc.name)}`} />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{doc.name}</span>
+                          <span className="text-xs text-gray-500">{doc.docType}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No documents were uploaded.
+                  </p>
+                )}
 
                 <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
                   <Clock className="w-4 h-4" />

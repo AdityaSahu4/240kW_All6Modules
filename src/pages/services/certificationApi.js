@@ -6,29 +6,26 @@ export const startCertificationRequest = async () => {
   return res.data   // { id, status }
 }
 
-// Save product details
-export const saveCertificationProductDetails = (id, data) =>
-  api.post(`/certification-request/${id}/product`, data)
+// Save certification details (region, product, category, standards)
+export const saveCertificationDetails = (id, data) =>
+  api.post(`/certification-request/${id}/details`, data)
 
-// Save technical documents
-export const saveCertificationTechnicalDocuments = (id, data) =>
-  api.post(`/certification-request/${id}/documents`, data)
-
-// Save certification requirements
-export const saveCertificationRequirements = (id, data) =>
-  api.post(`/certification-request/${id}/requirements`, data)
-
-// Save certification standards
-export const saveCertificationStandards = (id, data) =>
-  api.post(`/certification-request/${id}/standards`, data)
+// Upload certification documents (multipart file upload)
+export const uploadCertificationDocuments = (id, formData) =>
+  api.post(
+    `/certification-request/${id}/upload-documents`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  )
 
 // Save lab selection as draft
 export const saveCertificationLabSelectionDraft = (id, data) =>
   api.post(`/certification-request/${id}/lab-selection/draft`, data)
 
-// Submit request (labs)
+// Submit request (final submission)
 export const submitCertificationRequest = (id, data) =>
   api.post(`/certification-request/${id}/submit`, data)
 
+// Fetch full certification request
 export const fetchFullCertificationRequest = (id) =>
   api.get(`/certification-request/${id}/full`).then(res => res.data)

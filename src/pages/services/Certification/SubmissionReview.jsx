@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, Edit, AlertTriangle, HelpCircle, ArrowRight, CheckCircle } from 'lucide-react'
+import { FileText, Edit, AlertTriangle, HelpCircle, ArrowRight } from 'lucide-react'
 
 function SubmissionReview({ formData, updateFormData, onEdit }) {
   const [additionalNotes, setAdditionalNotes] = useState(formData.additionalNotes || '')
@@ -132,7 +132,7 @@ function SubmissionReview({ formData, updateFormData, onEdit }) {
         <div className="space-y-4">
           {documentTypes.map((doc) => {
             const Icon = doc.icon
-            const uploaded = formData.uploadedCertDocs?.[doc.id]
+            const uploaded = formData.uploadedCertDocs?.find(d => d.docType === doc.id)
             
             return (
               <div
@@ -156,9 +156,32 @@ function SubmissionReview({ formData, updateFormData, onEdit }) {
                 </div>
 
                 {uploaded && (
-                  <button className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm">
+                  <label className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-sm cursor-pointer">
                     Replace
-                  </button>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const updatedDocs = [
+                            ...formData.uploadedCertDocs.filter(d => d.docType !== doc.id),
+                            {
+                              docType: doc.id,
+                              file,
+                              name: file.name,
+                              size: file.size,
+                              type: file.type,
+                              uploadedAt: new Date().toISOString(),
+                            }
+                          ]
+                          updateFormData({ uploadedCertDocs: updatedDocs })
+                        }
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
                 )}
               </div>
             )

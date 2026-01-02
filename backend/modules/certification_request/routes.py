@@ -1,14 +1,35 @@
 # routes.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from typing import List
 from core.database import get_db
 from . import services, schemas
-from modules.certification_request.models import CertificationRequest
-
+from .models import CertificationRequest
 
 router = APIRouter(prefix="/certification-request", tags=["Certification Request"])
 
-@router.get("/{{prefix}_request_id}")
+@router.get("/draft")
+def get_existing_draft(db: Session = Depends(get_db)):
+    """Find the most recent draft certification request"""
+    draft = db.query(CertificationRequest).filter(
+        CertificationRequest.status == "draft"
+    ).order_by(CertificationRequest.created_at.desc()).first()
+    
+    if draft:
+        return {
+            "id": draft.id,
+            "status": draft.status,
+            "target_region": draft.target_region,
+            "product_name": draft.product_name,
+            "product_category": draft.product_category,
+            "standards": draft.standards,
+            "estimated_fee_range": draft.estimated_fee_range,
+            "additional_notes": draft.additional_notes,
+        }
+    
+    raise HTTPException(status_code=404, detail="No draft found")
+
+@router.get("/{certification_request_id}")
 def get_request(certification_request_id: int, db: Session = Depends(get_db)):
     req = db.query(CertificationRequest).filter(
         CertificationRequest.id == certification_request_id
@@ -23,50 +44,32 @@ def get_request(certification_request_id: int, db: Session = Depends(get_db)):
 def start_certification_request(db: Session = Depends(get_db)):
     return services.create_certification_request(db)
 
-
-@router.post("/{{prefix}_request_id}/product")
-def save_product(
+@router.post("/{certification_request_id}/details")
+def save_details(
     certification_request_id: int,
-    payload: schemas.CertificationProductDetailsSchema,
+    payload: schemas.CertificationDetailsSchema,
     db: Session = Depends(get_db)
 ):
-    services.save_certification_product_details(db, certification_request_id, payload)
-    return {"status": "saved"}
+    try:
+        return services.save_certification_details(db, certification_request_id, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-@router.post("/{{prefix}_request_id}/documents")
-def save_documents(
+@router.post("/{certification_request_id}/upload-documents")
+def upload_documents(
     certification_request_id: int,
-    payload: schemas.CertificationTechnicalDocumentsSchema,
+    files: List[UploadFile] = File(...),
+    doc_types: List[str] = Form(...),
     db: Session = Depends(get_db)
 ):
-    services.save_certification_technical_documents(
+    return services.save_certification_uploaded_files(
         db,
         certification_request_id,
-        payload.documents
+        files,
+        doc_types
     )
-    return {"status": "documents saved"}
 
-@router.post("/{{prefix}_request_id}/requirements")
-def save_requirements(
-    certification_request_id: int,
-    payload: schemas.CertificationRequirementsSchema,
-    db: Session = Depends(get_db)
-):
-    services.save_certification_requirements(db, certification_request_id, payload)
-    return {"status": "saved"}
-
-
-@router.post("/{{prefix}_request_id}/standards")
-def save_standards(
-    certification_request_id: int,
-    payload: schemas.CertificationStandardsSchema,
-    db: Session = Depends(get_db)
-):
-    services.save_certification_standards(db, certification_request_id, payload)
-    return {"status": "saved"}
-
-
-@router.post("/{{prefix}_request_id}/lab-selection/draft")
+@router.post("/{certification_request_id}/lab-selection/draft")
 def save_lab_selection_draft(
     certification_request_id: int,
     payload: schemas.CertificationLabSelectionSchema,
@@ -76,7 +79,7 @@ def save_lab_selection_draft(
     services.save_certification_lab_selection_draft(db, certification_request_id, payload)
     return {"status": "draft saved"}
 
-@router.post("/{{prefix}_request_id}/submit")
+@router.post("/{certification_request_id}/submit")
 def submit(
     certification_request_id: int,
     payload: schemas.CertificationLabSelectionSchema,
@@ -86,7 +89,7 @@ def submit(
     return {"status": "submitted"}
 
 
-@router.get("/{{prefix}_request_id}/full")
+@router.get("/{certification_request_id}/full")
 def get_full_request(
     certification_request_id: int,
     db: Session = Depends(get_db)
@@ -97,3 +100,12 @@ def get_full_request(
         raise HTTPException(status_code=404, detail="Certification request not found")
 
     return data
+
+@router.delete("/cleanup-drafts")
+def cleanup_old_drafts(keep_latest: int = 1, db: Session = Depends(get_db)):
+    deleted_count = services.cleanup_old_drafts(db, keep_latest)
+    return {
+        "status": "success",
+        "deleted_count": deleted_count,
+        "message": f"Deleted {deleted_count} old draft(s)"
+    }
