@@ -51,4 +51,5 @@ Thumbs.db
 # ======================
 # DOC UPLOAD FOLDER
 # ======================
-backend/database/upload/
+backend/database/upload/*
+!backend/database/upload/.gitkeep
