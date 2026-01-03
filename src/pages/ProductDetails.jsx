@@ -77,7 +77,7 @@ function ProductDetails() {
       
       // Redirect to home page after 2 seconds
       setTimeout(() => {
-        window.location.href = 'http://localhost:5173/services/testing/submission-success'
+        window.location.href = '/services/testing/submission-success'
       }, 2000)
 
     } catch (error) {
@@ -131,7 +131,7 @@ function ProductDetails() {
       
       // Redirect to home page after 2 seconds
       setTimeout(() => {
-        window.location.href = 'http://localhost:5173/pricing'
+        window.location.href = '/pricing'
       }, 2000)
 
     } catch (error) {
