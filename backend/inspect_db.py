@@ -36,7 +36,7 @@ else:
 
 # Check product_details table
 print("\n--- Product Details ---")
-cursor.execute("SELECT * FROM product_details WHERE testing_request_id = ?", (testing_request_id,))
+cursor.execute("SELECT * FROM testing_product_details WHERE testing_request_id = ?", (testing_request_id,))
 columns = [description[0] for description in cursor.description]
 row = cursor.fetchone()
 if row:

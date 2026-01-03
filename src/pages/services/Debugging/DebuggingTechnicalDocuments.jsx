@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { FileText, Upload, CheckCircle, X, Layers, Settings, Cpu, List, Zap, Code } from 'lucide-react'
 
 function DebuggingTechnicalDocuments({ formData, updateFormData }) {
@@ -11,26 +10,28 @@ function DebuggingTechnicalDocuments({ formData, updateFormData }) {
     { id: 'firmware', name: 'Firmware Details', icon: Code, color: 'indigo', required: false },
   ]
 
+  // ⭐️ SAVE ACTUAL FILE object + metadata
   const handleFileUpload = (docId, file) => {
-    if (file) {
-      updateFormData({
-        uploadedDocs: {
-          ...formData.uploadedDocs,
-          [docId]: {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            uploadedAt: new Date().toISOString()
-          }
+    if (!file) return
+
+    updateFormData({
+      uploadedDocs: {
+        ...formData.uploadedDocs,
+        [docId]: {
+          file,                      // <-- real file
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uploadedAt: new Date().toISOString(),
         }
-      })
-    }
+      }
+    })
   }
 
   const handleRemoveFile = (docId) => {
-    const newDocs = { ...formData.uploadedDocs }
-    delete newDocs[docId]
-    updateFormData({ uploadedDocs: newDocs })
+    const copy = { ...formData.uploadedDocs }
+    delete copy[docId]
+    updateFormData({ uploadedDocs: copy })
   }
 
   const getColorClasses = (color) => {
@@ -56,7 +57,7 @@ function DebuggingTechnicalDocuments({ formData, updateFormData }) {
           {documents.map((doc) => {
             const Icon = doc.icon
             const uploaded = formData.uploadedDocs?.[doc.id]
-            
+
             return (
               <div
                 key={doc.id}
@@ -66,16 +67,18 @@ function DebuggingTechnicalDocuments({ formData, updateFormData }) {
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getColorClasses(doc.color)}`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">{doc.name}</span>
+
                       {doc.required && (
                         <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
                           Required
                         </span>
                       )}
                     </div>
+
                     {uploaded && (
                       <div className="flex items-center gap-2 mt-1">
                         <CheckCircle className="w-4 h-4 text-green-600" />
@@ -105,7 +108,7 @@ function DebuggingTechnicalDocuments({ formData, updateFormData }) {
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0]
-                          if (file) handleFileUpload(doc.id, file)
+                          handleFileUpload(doc.id, file)
                         }}
                       />
                     </label>
@@ -129,10 +132,10 @@ function DebuggingTechnicalDocuments({ formData, updateFormData }) {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   )
 }
 
 export default DebuggingTechnicalDocuments
-

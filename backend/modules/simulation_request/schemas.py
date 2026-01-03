@@ -1,4 +1,4 @@
-# schemas.py
+# modules/simulation_request/schemas.py
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 
@@ -29,30 +29,23 @@ class SimulationProductDetailsSchema(BaseModel):
     industry: List[str]
     industry_other: Optional[str]
 
-    preferred_date: Optional[str]
     notes: Optional[str]
 
+
+# TECHNICAL DOCUMENTS
 class SimulationTechnicalDocumentItemSchema(BaseModel):
     doc_type: str
     file_name: str
-    file_path: str | None = None
-    file_size: int | None = 0
+    file_path: Optional[str] = None
+    file_size: Optional[int] = 0
 
 
 class SimulationTechnicalDocumentsSchema(BaseModel):
     documents: List[SimulationTechnicalDocumentItemSchema]
 
-class SimulationRequirementsSchema(BaseModel):
-    test_type: str
-    selected_tests: List[str]
 
 
-class SimulationStandardsSchema(BaseModel):
-    regions: List[str]
-    standards: List[str]
-
-
-class SimulationLabSelectionSchema(BaseModel):
-    selected_labs: List[str]
-    region: Optional[Dict[str, Optional[str]]] = None  # {country, state, city}
-    remarks: Optional[str] = None
+# SIMULATION-SPECIFIC
+class SimulationDetailsSchema(BaseModel):
+    product_type: str
+    selected_simulations: List[str]

@@ -15,7 +15,7 @@ class SimulationProductDetails(Base):
     __tablename__ = "simulation_product_details"
 
     id = Column(Integer, primary_key=True)
-    simulation_request_id = Column(Integer, ForeignKey("simulation_requests.id"))
+    simulation_request_id = Column(Integer,ForeignKey("simulation_requests.id"))
 
     eut_name = Column(String)
     eut_quantity = Column(String)
@@ -41,7 +41,6 @@ class SimulationProductDetails(Base):
     industry = Column(JSON)
     industry_other = Column(String)
 
-    preferred_date = Column(String)
     notes = Column(Text)
 
 
@@ -49,41 +48,23 @@ class SimulationTechnicalDocument(Base):
     __tablename__ = "simulation_technical_documents"
 
     id = Column(Integer, primary_key=True)
-    simulation_request_id = Column(Integer, ForeignKey("simulation_requests.id"))
+    simulation_request_id = Column(Integer,ForeignKey("simulation_requests.id"))
 
     doc_type = Column(String)
     file_name = Column(String)
     file_path = Column(String)
     file_size = Column(Integer)
-    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    uploaded_at = Column(DateTime(timezone=True),server_default=func.now())
 
 
-class SimulationRequirements(Base):
-    __tablename__ = "simulation_requirements"
-
-    id = Column(Integer, primary_key=True)
-    simulation_request_id = Column(Integer, ForeignKey("simulation_requests.id"))
-
-    test_type = Column(String)
-    selected_tests = Column(JSON)
-
-
-class SimulationStandards(Base):
-    __tablename__ = "simulation_standards"
+class SimulationDetails(Base):
+    __tablename__ = "simulation_details"
 
     id = Column(Integer, primary_key=True)
-    simulation_request_id = Column(Integer, ForeignKey("simulation_requests.id"))
+    simulation_request_id = Column(
+        Integer,
+        ForeignKey("simulation_requests.id")
+    )
 
-    regions = Column(JSON)
-    standards = Column(JSON)
-
-
-class SimulationLabSelection(Base):
-    __tablename__ = "simulation_lab_selection"
-
-    id = Column(Integer, primary_key=True)
-    simulation_request_id = Column(Integer, ForeignKey("simulation_requests.id"))
-
-    selected_labs = Column(JSON)
-    region = Column(JSON)  # Store as {country, state, city}
-    remarks = Column(Text)
+    product_type = Column(String)
+    selected_simulations = Column(JSON)

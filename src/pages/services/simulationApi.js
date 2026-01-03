@@ -1,34 +1,32 @@
 import api from "./api"
 
-// Start new simulation request
+// START SIMULATION REQUEST
 export const startSimulationRequest = async () => {
   const res = await api.post("/simulation-request/")
   return res.data   // { id, status }
 }
 
-// Save product details
+// SAVE PRODUCT DETAILS
 export const saveSimulationProductDetails = (id, data) =>
   api.post(`/simulation-request/${id}/product`, data)
 
-// Save technical documents
+// SAVE TECHNICAL DOCUMENTS
 export const saveSimulationTechnicalDocuments = (id, data) =>
   api.post(`/simulation-request/${id}/documents`, data)
 
-// Save simulation requirements
-export const saveSimulationRequirements = (id, data) =>
-  api.post(`/simulation-request/${id}/requirements`, data)
+// SAVE SIMULATION DETAILS
 
-// Save simulation standards
-export const saveSimulationStandards = (id, data) =>
-  api.post(`/simulation-request/${id}/standards`, data)
+export const saveSimulationDetails = (id, data) =>
+  api.post(`/simulation-request/${id}/details`, data)
 
-// Save lab selection as draft
-export const saveSimulationLabSelectionDraft = (id, data) =>
-  api.post(`/simulation-request/${id}/lab-selection/draft`, data)
+// SAVE DRAFT
+export const saveSimulationDraft = (id) =>
+  api.post(`/simulation-request/${id}/draft`)
 
-// Submit request (labs)
-export const submitSimulationRequest = (id, data) =>
-  api.post(`/simulation-request/${id}/submit`, data)
+// SUBMIT SIMULATION REQUEST
+export const submitSimulationRequest = (id) =>
+  api.post(`/simulation-request/${id}/submit`)
 
+// FETCH FULL SIMULATION REQUEST
 export const fetchFullSimulationRequest = (id) =>
   api.get(`/simulation-request/${id}/full`).then(res => res.data)

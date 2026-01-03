@@ -1,4 +1,4 @@
-import { Code, Zap, Cable } from 'lucide-react'
+import { Code, Zap, Cable, MessageSquare } from 'lucide-react'
 
 function ProductDetails({ formData, updateFormData }) {
   const handleChange = (field, value) => {
@@ -327,29 +327,13 @@ function ProductDetails({ formData, updateFormData }) {
         )}
       </div>
 
-      {/* Preferable Testing Dates */}
+      {/* Additional Notes */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Code className="w-5 h-5 text-blue-600" />
+            <MessageSquare className="w-5 h-5 text-blue-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Preferable Testing Dates</h2>
-        </div>
-        
-        <p className="text-sm text-gray-600 mb-6">
-          Select your preferred dates for testing or submission. These dates help the lab schedule resources and allocate test slots.
-        </p>
-
-        <div className="mb-4">
-          <label className="text-sm font-medium text-gray-700 mb-2 block">
-            Preferred Testing Date
-          </label>
-          <input
-            type="date"
-            value={formData.preferredDate || ''}
-            onChange={(e) => handleChange('preferredDate', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <h2 className="text-xl font-bold text-gray-900">Additional Notes</h2>
         </div>
 
         <div>

@@ -1,58 +1,65 @@
-# schemas.py
+# backend/modules/debugging_request/schemas.py
+
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Dict, Any, Optional
 
-class DimensionsSchema(BaseModel):
-    length: str
-    width: str
-    height: str
 
-class DebuggingProductDetailsSchema(BaseModel):
-    eut_name: str
-    eut_quantity: str
+# -------- Master Response --------
+
+class DebuggingRequestResponse(BaseModel):
+    id: int
+    status: str
+
+    class Config:
+        orm_mode = True
+
+
+# -------- STEP 1 — Product Details --------
+    
+class DebuggingProductSchema(BaseModel):
+    name: str
+    quantity: int
     manufacturer: str
     model_no: str
     serial_no: str
 
     supply_voltage: str
-    operating_frequency: Optional[str]
+    frequency: str
     current: str
     weight: str
 
-    dimensions: DimensionsSchema
+    length: str
+    width: str
+    height: str
 
-    power_ports: str
-    signal_lines: str
-    software_name: Optional[str]
-    software_version: Optional[str]
+    ports: str
+    interfaces: str
 
-    industry: List[str]
-    industry_other: Optional[str]
+    software_name: str
+    software_version: str
 
-    preferred_date: Optional[str]
-    notes: Optional[str]
+    application: List[str]
 
-class DebuggingTechnicalDocumentItemSchema(BaseModel):
-    doc_type: str
-    file_name: str
-    file_path: str | None = None
-    file_size: int | None = 0
+    preferred_date: str
+    notes: Optional[str] = None
 
 
-class DebuggingTechnicalDocumentsSchema(BaseModel):
-    documents: List[DebuggingTechnicalDocumentItemSchema]
+# -------- STEP 2 --------
 
-class DebuggingRequirementsSchema(BaseModel):
-    test_type: str
-    selected_tests: List[str]
+class DebuggingDocumentsSchema(BaseModel):
+    documents: List[Dict[str, Any]]
 
 
-class DebuggingStandardsSchema(BaseModel):
-    regions: List[str]
-    standards: List[str]
+# -------- STEP 3 --------
+
+class IssueReviewSchema(BaseModel):
+    data: Dict[str, Any]
+    reports: Optional[List[Dict[str, Any]]] = []
 
 
-class DebuggingLabSelectionSchema(BaseModel):
-    selected_labs: List[str]
-    region: Optional[Dict[str, Optional[str]]] = None  # {country, state, city}
-    remarks: Optional[str] = None
+# -------- STEP 4 --------
+
+class EngineerEvaluationSchema(BaseModel):
+    evaluation: Optional[Dict[str, Any]] = None
+    path_selected: Optional[str] = None
+    comments: Optional[str] = None

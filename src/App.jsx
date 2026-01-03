@@ -37,6 +37,7 @@ import LabSchedule from './pages/lab/Schedule'
 import RequestDetail from './pages/lab/RequestDetail'
 import PortalSelection from './pages/lab/PortalSelection'
 import TestingSubmissionSuccess from './pages/services/Testing/SubmissionSuccess'
+import SimulationSubmissionSuccess from './pages/services/Simulation/SimulationSubmissionSuccess'
 
 // Loading component
 const PageLoader = () => (
@@ -382,7 +383,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/services/simulation/start"
+          path="/services/simulation/:step?"
           element={
             <motion.div
               initial="initial"
@@ -392,6 +393,20 @@ function AnimatedRoutes() {
               transition={pageTransition}
             >
               <SimulationFlow />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/services/simulation/submission-success"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+          >
+              <SimulationSubmissionSuccess />
             </motion.div>
           }
         />

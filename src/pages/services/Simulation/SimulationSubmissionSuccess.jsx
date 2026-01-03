@@ -1,9 +1,18 @@
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Bell, FileText, FolderOpen, Settings, Eye, ArrowLeft } from 'lucide-react'
+import { useState } from "react"
+import { fetchFullSimulationRequest } from "../../services/simulationApi"
+import SimulationSubmittedDetails from "./SimulationSubmittedDetails"
 
 function SimulationSubmissionSuccess() {
+  const location = useLocation()
+  const simulationRequestId = 
+  location.state?.simulationRequestId ||
+  localStorage.getItem("lastSubmittedSimulationRequestId")
   const navigate = useNavigate()
+  const [showDetails, setShowDetails] = useState(false)
+  const [submittedData, setSubmittedData] = useState(null)
 
   const submittedItems = [
     {
@@ -150,14 +159,80 @@ function SimulationSubmissionSuccess() {
                 </button>
                 
                 <button
+                onClick={async () => {
+                  if (!simulationRequestId) {
+                    alert("Simulation request ID not found")
+                    return
+                  }
+
+                  const data = await fetchFullSimulationRequest(simulationRequestId)
+                  setSubmittedData(data)
+                  setShowDetails(true)
+                }}
                   className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold flex items-center gap-2"
                 >
-                  <Eye className="w-4 h-4" />
-                  View Submission Details
+                <Eye className="w-4 h-4" />
+                View Submitted Details
                 </button>
               </div>
             </motion.div>
+            <AnimatePresence>
+              {showDetails && (
+                <motion.div
+                  className="fixed inset-0 z-50 flex items-center justify-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  {/* Background overlay */}
+                  <motion.div
+                    className="absolute inset-0 bg-black bg-opacity-50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowDetails(false)}
+                  />
 
+                  {/* Modal box */}
+                  <motion.div
+                    className="relative bg-white w-[90%] max-w-5xl max-h-[85vh] overflow-y-auto rounded-2xl shadow-2xl p-8 z-10"
+                    initial={{ scale: 0.95, y: 30, opacity: 0 }}
+                    animate={{ scale: 1, y: 0, opacity: 1 }}
+                    exit={{ scale: 0.95, y: 30, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  >
+                    {/* Close button */}
+                    <button
+                      onClick={() => setShowDetails(false)}
+                      className="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition"
+                      aria-label="Close"
+                    >
+                      ✕
+                    </button>
+
+                    {/* Header */}
+                    <div className="mb-6 border-b pb-4">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Submitted Simulation Details
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        Review the information you submitted for simulation
+                      </p>
+                    </div>
+
+                    {/* Content */}
+                    {submittedData ? (
+                      <SimulationSubmittedDetails data={submittedData} />
+                    ) : (
+                      <div className="text-center text-gray-600 py-16">
+                        Loading submitted details…
+                      </div>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
             {/* Footer */}
             <div className="flex items-center justify-end gap-6 text-sm text-gray-600">
               <a href="#" className="hover:text-gray-900">Help</a>

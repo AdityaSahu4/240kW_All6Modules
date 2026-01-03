@@ -1,99 +1,136 @@
-# routes.py
-from fastapi import APIRouter, Depends, HTTPException
+# backend/modules/debugging_request/routes.py
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    UploadFile,
+    File,
+    Form,
+    HTTPException,
+)
 from sqlalchemy.orm import Session
+from typing import List
+import os
+import json
+from uuid import uuid4
+
 from core.database import get_db
+
 from . import services, schemas
-from modules.debugging_request.models import DebuggingRequest
+from .models import DebuggingRequest
+
+router = APIRouter(prefix="/debugging-request", tags=["Debugging"])
+
+UPLOAD_ROOT = "uploads/debugging"
 
 
-router = APIRouter(prefix="/debugging-request", tags=["Debugging Request"])
+def save_file(file: UploadFile, folder: str):
+    os.makedirs(folder, exist_ok=True)
+    filename = f"{uuid4()}_{file.filename}"
+    path = os.path.join(folder, filename)
 
-@router.get("/{{prefix}_request_id}")
-def get_request(debugging_request_id: int, db: Session = Depends(get_db)):
-    req = db.query(DebuggingRequest).filter(
-        DebuggingRequest.id == debugging_request_id
-    ).first()
+    with open(path, "wb") as buffer:
+        buffer.write(file.file.read())
 
+    return path
+
+
+# -------- Create Request --------
+@router.post("/", response_model=schemas.DebuggingRequestResponse)
+def start_request(db: Session = Depends(get_db)):
+    return services.start_debugging_request(db)
+
+
+# -------- READ (basic) --------
+@router.get("/{request_id}")
+def get_request(request_id: int, db: Session = Depends(get_db)):
+    req = services.get_request(db, request_id)
     if not req:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    return {"id": req.id, "status": req.status}
-
-@router.post("/")
-def start_debugging_request(db: Session = Depends(get_db)):
-    return services.create_debugging_request(db)
+        raise HTTPException(404, "Request not found")
+    return req
 
 
-@router.post("/{{prefix}_request_id}/product")
+# -------- READ (full composite view) --------
+@router.get("/{request_id}/full")
+def get_full_request(request_id: int, db: Session = Depends(get_db)):
+    result = services.get_full_request(db, request_id)
+    if not result:
+        raise HTTPException(404, "Request not found")
+    return result
+
+
+# -------- STEP 1 — Product --------
+@router.post("/{request_id}/product")
 def save_product(
-    debugging_request_id: int,
-    payload: schemas.DebuggingProductDetailsSchema,
-    db: Session = Depends(get_db)
+    request_id: int,
+    payload: schemas.DebuggingProductSchema,
+    db: Session = Depends(get_db),
 ):
-    services.save_debugging_product_details(db, debugging_request_id, payload)
-    return {"status": "saved"}
+    req = db.get(DebuggingRequest, request_id)
+    if not req:
+        raise HTTPException(404, "Request not found")
 
-@router.post("/{{prefix}_request_id}/documents")
-def save_documents(
-    debugging_request_id: int,
-    payload: schemas.DebuggingTechnicalDocumentsSchema,
-    db: Session = Depends(get_db)
-):
-    services.save_debugging_technical_documents(
-        db,
-        debugging_request_id,
-        payload.documents
-    )
-    return {"status": "documents saved"}
-
-@router.post("/{{prefix}_request_id}/requirements")
-def save_requirements(
-    debugging_request_id: int,
-    payload: schemas.DebuggingRequirementsSchema,
-    db: Session = Depends(get_db)
-):
-    services.save_debugging_requirements(db, debugging_request_id, payload)
+    services.save_product_details(db, request_id, payload)
     return {"status": "saved"}
 
 
-@router.post("/{{prefix}_request_id}/standards")
-def save_standards(
-    debugging_request_id: int,
-    payload: schemas.DebuggingStandardsSchema,
-    db: Session = Depends(get_db)
+# -------- STEP 2 — Documents --------
+@router.post("/{request_id}/documents")
+def upload_documents(
+    request_id: int,
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
 ):
-    services.save_debugging_standards(db, debugging_request_id, payload)
-    return {"status": "saved"}
+    req = db.get(DebuggingRequest, request_id)
+    if not req:
+        raise HTTPException(404, "Request not found")
+
+    paths = [
+        {"name": f.filename, "path": save_file(f, f"{UPLOAD_ROOT}/{request_id}/docs")}
+        for f in files
+    ]
+
+    services.save_documents(db, request_id, paths)
+    return {"uploaded": paths}
 
 
-@router.post("/{{prefix}_request_id}/lab-selection/draft")
-def save_lab_selection_draft(
-    debugging_request_id: int,
-    payload: schemas.DebuggingLabSelectionSchema,
-    db: Session = Depends(get_db)
+# -------- STEP 3 — Issue Review --------
+@router.post("/{request_id}/issue-review")
+def save_issue_review(
+    request_id: int,
+    data: str = Form(...),
+    reports: List[UploadFile] = File(None),
+    db: Session = Depends(get_db),
 ):
-    """Save lab selection as draft"""
-    services.save_debugging_lab_selection_draft(db, debugging_request_id, payload)
-    return {"status": "draft saved"}
+    req = db.get(DebuggingRequest, request_id)
+    if not req:
+        raise HTTPException(404, "Request not found")
 
-@router.post("/{{prefix}_request_id}/submit")
-def submit(
-    debugging_request_id: int,
-    payload: schemas.DebuggingLabSelectionSchema,
-    db: Session = Depends(get_db)
-):
-    services.submit_debugging_request(db, debugging_request_id, payload)
-    return {"status": "submitted"}
+    parsed = json.loads(data)
+
+    uploaded = []
+    if reports:
+        for f in reports:
+            uploaded.append(
+                {
+                    "name": f.filename,
+                    "path": save_file(f, f"{UPLOAD_ROOT}/{request_id}/reports"),
+                }
+            )
+
+    payload = schemas.IssueReviewSchema(data=parsed, reports=uploaded)
+
+    services.save_issue_review(db, request_id, payload)
+
+    return {"status": "saved", "reports": uploaded}
 
 
-@router.get("/{{prefix}_request_id}/full")
-def get_full_request(
-    debugging_request_id: int,
-    db: Session = Depends(get_db)
-):
-    data = services.get_full_debugging_request(db, debugging_request_id)
+# -------- Submit --------
+@router.post("/{request_id}/submit")
+def submit_request(request_id: int, db: Session = Depends(get_db)):
+    result = services.submit_request(db, request_id)
 
-    if not data:
-        raise HTTPException(status_code=404, detail="Debugging request not found")
+    if not result:
+        raise HTTPException(404, "Request not found")
 
-    return data
+    return {"status": "submitted", "request_id": request_id}

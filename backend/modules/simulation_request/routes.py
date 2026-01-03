@@ -5,88 +5,70 @@ from core.database import get_db
 from . import services, schemas
 from modules.simulation_request.models import SimulationRequest
 
-
 router = APIRouter(prefix="/simulation-request", tags=["Simulation Request"])
 
-@router.get("/{{prefix}_request_id}")
+
+@router.get("/{simulation_request_id}")
 def get_request(simulation_request_id: int, db: Session = Depends(get_db)):
-    req = db.query(SimulationRequest).filter(
+    sr = db.query(SimulationRequest).filter(
         SimulationRequest.id == simulation_request_id
     ).first()
 
-    if not req:
+    if not sr:
         raise HTTPException(status_code=404, detail="Not found")
 
-    return {"id": req.id, "status": req.status}
+    return {"id": sr.id, "status": sr.status}
+
 
 @router.post("/")
 def start_simulation_request(db: Session = Depends(get_db)):
     return services.create_simulation_request(db)
 
 
-@router.post("/{{prefix}_request_id}/product")
+@router.post("/{simulation_request_id}/product")
 def save_product(
     simulation_request_id: int,
     payload: schemas.SimulationProductDetailsSchema,
     db: Session = Depends(get_db)
 ):
-    services.save_simulation_product_details(db, simulation_request_id, payload)
+    services.save_product_details(db, simulation_request_id, payload)
     return {"status": "saved"}
 
-@router.post("/{{prefix}_request_id}/documents")
+
+@router.post("/{simulation_request_id}/documents")
 def save_documents(
     simulation_request_id: int,
     payload: schemas.SimulationTechnicalDocumentsSchema,
     db: Session = Depends(get_db)
 ):
-    services.save_simulation_technical_documents(
+    services.save_technical_documents(
         db,
         simulation_request_id,
         payload.documents
     )
     return {"status": "documents saved"}
 
-@router.post("/{{prefix}_request_id}/requirements")
-def save_requirements(
+
+@router.post("/{simulation_request_id}/details")
+def save_simulation_details(
     simulation_request_id: int,
-    payload: schemas.SimulationRequirementsSchema,
+    payload: schemas.SimulationDetailsSchema,
     db: Session = Depends(get_db)
 ):
-    services.save_simulation_requirements(db, simulation_request_id, payload)
+    services.save_simulation_details(db, simulation_request_id, payload)
     return {"status": "saved"}
 
 
-@router.post("/{{prefix}_request_id}/standards")
-def save_standards(
-    simulation_request_id: int,
-    payload: schemas.SimulationStandardsSchema,
-    db: Session = Depends(get_db)
-):
-    services.save_simulation_standards(db, simulation_request_id, payload)
-    return {"status": "saved"}
-
-
-@router.post("/{{prefix}_request_id}/lab-selection/draft")
-def save_lab_selection_draft(
-    simulation_request_id: int,
-    payload: schemas.SimulationLabSelectionSchema,
-    db: Session = Depends(get_db)
-):
-    """Save lab selection as draft"""
-    services.save_simulation_lab_selection_draft(db, simulation_request_id, payload)
-    return {"status": "draft saved"}
-
-@router.post("/{{prefix}_request_id}/submit")
+@router.post("/{simulation_request_id}/submit")
 def submit(
     simulation_request_id: int,
-    payload: schemas.SimulationLabSelectionSchema,
     db: Session = Depends(get_db)
 ):
-    services.submit_simulation_request(db, simulation_request_id, payload)
+    services.submit_request(db, simulation_request_id)
     return {"status": "submitted"}
 
 
-@router.get("/{{prefix}_request_id}/full")
+@router.get("/{simulation_request_id}/full")
 def get_full_request(
     simulation_request_id: int,
     db: Session = Depends(get_db)

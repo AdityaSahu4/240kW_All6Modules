@@ -4,26 +4,33 @@ from .models import (
     SimulationRequest,
     SimulationProductDetails,
     SimulationTechnicalDocument,
-    SimulationRequirements,
-    SimulationStandards,
-    SimulationLabSelection
+    SimulationDetails
 )
 from .schemas import (
     SimulationProductDetailsSchema,
-    SimulationTechnicalDocumentsSchema,
-    SimulationRequirementsSchema,
-    SimulationStandardsSchema,
-    SimulationLabSelectionSchema
+    SimulationDetailsSchema
 )
 
 def create_simulation_request(db: Session):
-    req = SimulationRequest(status="submitted")
-    db.add(req)
+    sr = SimulationRequest(status="submitted")
+    db.add(sr)
     db.commit()
-    db.refresh(req)
-    return req
+    db.refresh(sr)
+    return sr
 
-def save_simulation_product_details(db: Session, simulation_request_id: int, payload: SimulationProductDetailsSchema):
+def save_draft(db: Session, simulation_request_id: int):
+    sr = db.query(SimulationRequest).filter(
+        SimulationRequest.id == simulation_request_id
+    ).first()
+
+    if not sr:
+        raise ValueError("SimulationRequest not found")
+
+    sr.status = "draft"
+    db.commit()
+
+
+def save_product_details(db: Session,simulation_request_id: int,payload: SimulationProductDetailsSchema):
     pd = db.query(SimulationProductDetails).filter(
         SimulationProductDetails.simulation_request_id == simulation_request_id
     ).first()
@@ -53,13 +60,12 @@ def save_simulation_product_details(db: Session, simulation_request_id: int, pay
 
     pd.industry = payload.industry
     pd.industry_other = payload.industry_other
-    pd.preferred_date = payload.preferred_date
     pd.notes = payload.notes
 
     db.commit()
 
 
-def save_simulation_technical_documents(
+def save_technical_documents(
     db: Session,
     simulation_request_id: int,
     documents: list
@@ -76,119 +82,51 @@ def save_simulation_technical_documents(
 
     db.commit()
 
-def save_simulation_requirements(db: Session, simulation_request_id: int, payload: SimulationRequirementsSchema):
-    req = db.query(SimulationRequirements).filter(
-        SimulationRequirements.simulation_request_id == simulation_request_id
+def save_simulation_details(db: Session,simulation_request_id: int,payload: SimulationDetailsSchema):
+    sd = db.query(SimulationDetails).filter(
+        SimulationDetails.simulation_request_id == simulation_request_id
     ).first()
 
-    if not req:
-        req = SimulationRequirements(simulation_request_id=simulation_request_id)
-        db.add(req)
+    if not sd:
+        sd = SimulationDetails(simulation_request_id=simulation_request_id)
+        db.add(sd)
 
-    req.test_type = payload.test_type
-    req.selected_tests = payload.selected_tests
+    sd.product_type = payload.product_type
+    sd.selected_simulations = payload.selected_simulations
 
     db.commit()
 
-def save_simulation_standards(db: Session, simulation_request_id: int, payload: SimulationStandardsSchema):
-    std = db.query(SimulationStandards).filter(
-        SimulationStandards.simulation_request_id == simulation_request_id
-    ).first()
-
-    if not std:
-        std = SimulationStandards(simulation_request_id=simulation_request_id)
-        db.add(std)
-
-    std.regions = payload.regions
-    std.standards = payload.standards
-
-    db.commit()
-
-def save_simulation_lab_selection_draft(db: Session, simulation_request_id: int, payload: SimulationLabSelectionSchema):
-    """Save lab selection as draft without changing request status"""
-    req = db.query(SimulationRequest).filter(
+def submit_request(db: Session, simulation_request_id: int):
+    sr = db.query(SimulationRequest).filter(
         SimulationRequest.id == simulation_request_id
     ).first()
 
-    if not req:
+    if not sr:
         raise ValueError("SimulationRequest not found")
 
-    lab = db.query(SimulationLabSelection).filter(
-        SimulationLabSelection.simulation_request_id == simulation_request_id
-    ).first()
-
-    if lab:
-        lab.selected_labs = payload.selected_labs
-        if payload.region:
-            lab.region = payload.region
-        lab.remarks = payload.remarks
-    else:
-        lab = SimulationLabSelection(
-            simulation_request_id=simulation_request_id,
-            selected_labs=payload.selected_labs,
-            region=payload.region if payload.region else None,
-            remarks=payload.remarks
-        )
-        db.add(lab)
-
-    db.commit()
-    db.refresh(lab)
-    return lab
-
-def submit_simulation_request(db: Session, simulation_request_id: int, payload: SimulationLabSelectionSchema):
-    req = db.query(SimulationRequest).filter(
-        SimulationRequest.id == simulation_request_id
-    ).first()
-
-    if not req:
-        raise ValueError("SimulationRequest not found")
-
-    lab = db.query(SimulationLabSelection).filter(
-        SimulationLabSelection.simulation_request_id == simulation_request_id
-    ).first()
-
-    if lab:
-        lab.selected_labs = payload.selected_labs
-        if payload.region:
-            lab.region = payload.region
-        lab.remarks = payload.remarks
-    else:
-        lab = SimulationLabSelection(
-            simulation_request_id=simulation_request_id,
-            selected_labs=payload.selected_labs,
-            region=payload.region if payload.region else None,
-            remarks=payload.remarks
-        )
-        db.add(lab)
-
-    req.status = "submitted"
+    sr.status = "submitted"
     db.commit()
 
 def get_full_simulation_request(db: Session, simulation_request_id: int):
-    req = db.query(SimulationRequest).filter(
+    sr = db.query(SimulationRequest).filter(
         SimulationRequest.id == simulation_request_id
     ).first()
 
-    if not req:
+    if not sr:
         return None
 
     product = db.query(SimulationProductDetails).filter_by(
         simulation_request_id=simulation_request_id
     ).first()
 
-    requirements = db.query(SimulationRequirements).filter_by(
+    simulation = db.query(SimulationDetails).filter_by(
         simulation_request_id=simulation_request_id
     ).first()
 
-    standards = db.query(SimulationStandards).filter_by(
-        simulation_request_id=simulation_request_id
-    ).first()
+    documents = db.query(SimulationTechnicalDocument).filter(
+        SimulationTechnicalDocument.simulation_request_id == simulation_request_id
+    ).all()
 
-    lab = db.query(SimulationLabSelection).filter_by(
-        simulation_request_id=simulation_request_id
-    ).first()
-
-    # Convert SQLAlchemy objects to dictionaries for proper JSON serialization
     product_dict = None
     if product:
         product_dict = {
@@ -211,43 +149,35 @@ def get_full_simulation_request(db: Session, simulation_request_id: int):
             "software_version": product.software_version,
             "industry": product.industry,
             "industry_other": product.industry_other,
-            "preferred_date": product.preferred_date,
             "notes": product.notes
         }
 
-    requirements_dict = None
-    if requirements:
-        requirements_dict = {
-            "id": requirements.id,
-            "test_type": requirements.test_type,
-            "selected_tests": requirements.selected_tests or []
+    simulation_dict = None
+    if simulation:
+        simulation_dict = {
+            "id": simulation.id,
+            "product_type": simulation.product_type,
+            "selected_simulations": simulation.selected_simulations or []
         }
-
-    standards_dict = None
-    if standards:
-        standards_dict = {
-            "id": standards.id,
-            "regions": standards.regions or [],
-            "standards": standards.standards or []
+    
+    documents_list = [
+        {
+            "id": d.id,
+            "doc_type": d.doc_type,
+            "file_name": d.file_name,
+            "file_path": d.file_path,
+            "file_size": d.file_size
         }
-
-    lab_dict = None
-    if lab:
-        lab_dict = {
-            "id": lab.id,
-            "selected_labs": lab.selected_labs or [],
-            "region": lab.region,
-            "remarks": lab.remarks
-        }
+    for d in documents
+    ]
 
     return {
         "simulation_request": {
-            "id": req.id,
-            "status": req.status,
-            "created_at": req.created_at.isoformat() if req.created_at else None
+            "id": sr.id,
+            "status": sr.status,
+            "created_at": sr.created_at.isoformat() if sr.created_at else None
         },
         "product": product_dict,
-        "requirements": requirements_dict,
-        "standards": standards_dict,
-        "lab": lab_dict
+        "simulation": simulation_dict,
+        "technical_documents": documents_list
     }

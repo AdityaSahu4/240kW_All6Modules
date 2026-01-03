@@ -12,7 +12,7 @@ class TestingRequest(Base):
 
 
 class ProductDetails(Base):
-    __tablename__ = "product_details"
+    __tablename__ = "testing_product_details"
 
     id = Column(Integer, primary_key=True)
     testing_request_id = Column(Integer, ForeignKey("testing_requests.id"))
