@@ -24,7 +24,7 @@ function ProductDetails() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState(null) // 'success' or 'error'
 
-  const API_BASE_URL = 'http://localhost:8000' // ✅ Change to your backend URL
+  const API_BASE_URL = import.meta.env.VITE_API_URL // ✅ Change to your backend URL
 
   const handleChange = (e) => {
     setFormData({
@@ -72,9 +72,9 @@ function ProductDetails() {
 
       const data = await response.json()
       console.log('✅ Form submitted successfully:', data)
-      
+
       setSubmitStatus('success')
-      
+
       // Redirect to home page after 2 seconds
       setTimeout(() => {
         window.location.href = '/services/testing/submission-success'
@@ -126,9 +126,9 @@ function ProductDetails() {
 
       const data = await response.json()
       console.log('✅ Quote requested successfully:', data)
-      
+
       setSubmitStatus('success')
-      
+
       // Redirect to home page after 2 seconds
       setTimeout(() => {
         window.location.href = '/pricing'
@@ -182,7 +182,7 @@ function ProductDetails() {
             Submit your product information to get started
           </p>
         </motion.div>
-        
+
         {/* Success/Error Messages */}
         {submitStatus === 'success' && (
           <motion.div
@@ -193,7 +193,7 @@ function ProductDetails() {
             ✅ Successfully submitted! Redirecting to home page...
           </motion.div>
         )}
-        
+
         {submitStatus === 'error' && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -203,7 +203,7 @@ function ProductDetails() {
             ❌ Failed to submit. Please try again.
           </motion.div>
         )}
-        
+
         <motion.form
           variants={containerVariants}
           initial="hidden"
@@ -218,7 +218,7 @@ function ProductDetails() {
                 <FileText className="w-5 h-5 text-primary" />
                 Organization Information
               </h3>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Name of Organization
@@ -233,7 +233,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Contact Person
@@ -248,7 +248,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Designation
@@ -263,7 +263,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
@@ -278,7 +278,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mobile No
@@ -293,7 +293,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Address
@@ -308,7 +308,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Preferable Dates (for Testing)
@@ -323,7 +323,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Industry/Application
@@ -345,14 +345,14 @@ function ProductDetails() {
                 </motion.select>
               </div>
             </motion.div>
-            
+
             {/* Right Column */}
             <motion.div variants={itemVariants} className="space-y-4">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary" />
                 Product Information
               </h3>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Services
@@ -374,7 +374,7 @@ function ProductDetails() {
                   <option value="certification">Certification</option>
                 </motion.select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Name
@@ -389,7 +389,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Quantity
@@ -405,7 +405,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Specification (Weight, height, width)
@@ -420,7 +420,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Part No.
@@ -434,7 +434,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Standards Required
@@ -449,7 +449,7 @@ function ProductDetails() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Product Description
@@ -465,7 +465,7 @@ function ProductDetails() {
               </div>
             </motion.div>
           </div>
-          
+
           <motion.div
             variants={itemVariants}
             className="flex justify-center gap-4 mt-8"
