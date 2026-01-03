@@ -4,12 +4,20 @@ from core.config import get_settings
 
 settings = get_settings()
 
+# ==============================
+# MAIN APPLICATION DATABASE
+# ==============================
+
 engine = create_engine(
     settings.DATABASE_URL,
     connect_args={"check_same_thread": False}
 )
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False
+)
 
 Base = declarative_base()
 
@@ -20,14 +28,13 @@ def get_db():
     finally:
         db.close()
 
-# ==============================
-# AUTH DATABASE (NEW)
-# ==============================
 
-AUTH_DATABASE_URL = "sqlite:///database/auth.db"
+# ==============================
+# AUTH DATABASE (SEPARATE)
+# ==============================
 
 auth_engine = create_engine(
-    AUTH_DATABASE_URL,
+    settings.AUTH_DATABASE_URL,
     connect_args={"check_same_thread": False}
 )
 
