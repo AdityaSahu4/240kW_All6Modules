@@ -14,7 +14,7 @@ function TestingStandards() {
   ]
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-2xl font-bold text-center mb-6">Testing Standards</h2>
+      <h2 className="text-2xl font-bold text-center mb-6">Design Testing Standards</h2>
       <div className="grid md:grid-cols-2 gap-6">
         <div className="border rounded-lg p-4">
           <div className="font-semibold mb-3">Recommended Standards</div>

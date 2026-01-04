@@ -29,8 +29,8 @@ class DesignProductDetailsSchema(BaseModel):
     industry: List[str]
     industry_other: Optional[str]
 
-    preferred_date: Optional[str]
-    notes: Optional[str]
+    # preferred_date: Optional[str]
+    # notes: Optional[str]
 
 class DesignTechnicalDocumentItemSchema(BaseModel):
     doc_type: str
