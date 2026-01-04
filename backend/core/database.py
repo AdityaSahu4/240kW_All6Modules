@@ -5,13 +5,15 @@ from core.config import get_settings
 settings = get_settings()
 
 # ==============================
-# MAIN APPLICATION DATABASE
+# MAIN DATABASE
 # ==============================
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+# auth_engine = create_engine(
+#     settings.AUTH_DATABASE_URL,
+#     connect_args={"check_same_thread": False}
+# )
+
+engine = create_engine(settings.DATABASE_URL)
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -28,15 +30,16 @@ def get_db():
     finally:
         db.close()
 
-
 # ==============================
-# AUTH DATABASE (SEPARATE)
+# AUTH DATABASE (SAME POSTGRES DB)
 # ==============================
 
-auth_engine = create_engine(
-    settings.AUTH_DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+# auth_engine = create_engine(
+#     settings.AUTH_DATABASE_URL,
+#     connect_args={"check_same_thread": False}
+# )
+
+auth_engine = create_engine(settings.AUTH_DATABASE_URL)
 
 AuthSessionLocal = sessionmaker(
     bind=auth_engine,

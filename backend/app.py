@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from core.database import engine, Base
+from core.database import engine, Base, auth_engine, AuthBase
 from modules.testing_request.routes import router as testing_router
 from modules.design_request.routes import router as design_router
 from modules.calibration_request.routes import router as calibration_router
@@ -12,7 +12,6 @@ from modules.auth.routes import router as auth_router
 
 app = FastAPI(title="Compliance Services Platform - All Modules")
 
-# ✅ ADD CORS (THIS FIXES EVERYTHING)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,27 +20,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ CREATE TABLES IN POSTGRES
 Base.metadata.create_all(bind=engine)
+AuthBase.metadata.create_all(bind=auth_engine)
 
-# Include all service routers
+# Routers
 app.include_router(testing_router)
 app.include_router(design_router)
 app.include_router(calibration_router)
 app.include_router(certification_router)
 app.include_router(debugging_router)
 app.include_router(simulation_request_router)
-app.include_router(product_details_router)  # ✅ NEW ROUTER
+app.include_router(product_details_router)
 app.include_router(auth_router)
 
 @app.get("/")
 def root():
     return {
-        "message": "Testing Request Backend API",
-        "endpoints": {
-            # "testing_request": "/testing-request",
-            "product_details": "/product-details",
-            "docs": "/docs"
-        }
+        "message": "Compliance Services Platform API",
+        "health": "/health",
+        "docs": "/docs"
     }
 
 @app.get("/health")
