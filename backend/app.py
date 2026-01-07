@@ -9,6 +9,7 @@ from modules.debugging_request.routes import router as debugging_router
 from modules.simulation_request.routes import router as simulation_request_router
 from modules.product_details.routes import router as product_details_router
 from modules.auth.routes import router as auth_router
+from modules.labs.routes import router as labs_router
 
 app = FastAPI(title="Compliance Services Platform - All Modules")
 
@@ -32,6 +33,7 @@ app.include_router(debugging_router)
 app.include_router(simulation_request_router)
 app.include_router(product_details_router)  # ✅ NEW ROUTER
 app.include_router(auth_router)
+app.include_router(labs_router, prefix="/api")
 
 @app.get("/")
 def root():
