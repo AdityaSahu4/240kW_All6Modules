@@ -24,11 +24,76 @@ from .schemas import (
 )
 
 def create_calibration_request(db: Session):
-    req = CalibrationRequest(status="submitted")
+    req = CalibrationRequest(status="draft")
     db.add(req)
     db.commit()
     db.refresh(req)
     return req
+
+def get_all_calibration_requests(db: Session):
+    """Get all SUBMITTED calibration requests (excludes drafts)"""
+    # ✅ FILTER: Only return submitted requests for customer dashboard
+    requests = db.query(CalibrationRequest).filter(
+        CalibrationRequest.status == "submitted"
+    ).all()
+    
+    result = []
+    for req in requests:
+        # Get product details
+        product = db.query(CalibrationProductDetails).filter_by(
+            calibration_request_id=req.id
+        ).first()
+        
+        # Get requirements
+        requirements = db.query(CalibrationRequirements).filter_by(
+            calibration_request_id=req.id
+        ).first()
+        
+        # Get standards
+        standards = db.query(CalibrationStandards).filter_by(
+            calibration_request_id=req.id
+        ).first()
+        
+        # Get lab selection
+        lab = db.query(CalibrationLabSelection).filter_by(
+            calibration_request_id=req.id
+        ).first()
+        
+        # ✅ IMPROVED: Calculate progress based on completion
+        progress = 0
+        if product:
+            progress += 25  # Product details = 25%
+        if requirements:
+            progress += 25  # Requirements = 25%
+        if standards:
+            progress += 25  # Standards = 25%
+        if lab:
+            progress += 15  # Lab selection = 15%
+        if req.status == "submitted":
+            progress = 100  # Fully submitted = 100%
+        
+        # ✅ IMPROVED: Better status mapping
+        status_map = {
+            "draft": "Awaiting",           # Not yet submitted
+            "submitted": "Complete",        # Fully submitted
+            "in_progress": "Testing",       # Lab is testing
+            "under_review": "Testing",      # Under review
+            "completed": "Complete",        # Final completion
+        }
+        
+        result.append({
+            "id": f"CAL-{req.id}",
+            "name": product.eut_name if product else f"Calibration Request #{req.id}",
+            "service": "Calibration",
+            "status": status_map.get(req.status, "Awaiting"),
+            "progress": progress,
+            "createdAt": req.created_at.isoformat() if req.created_at else None,
+            "testType": requirements.test_type if requirements else None,
+            "manufacturer": product.manufacturer if product else None,
+            "modelNo": product.model_no if product else None,
+        })
+    
+    return result
 
 def save_calibration_product_details(db: Session, calibration_request_id: int, payload: CalibrationProductDetailsSchema):
     pd = db.query(CalibrationProductDetails).filter(
@@ -218,6 +283,7 @@ def save_calibration_lab_selection_draft(db: Session, calibration_request_id: in
     return lab
 
 def submit_calibration_request(db: Session, calibration_request_id: int, payload: CalibrationLabSelectionSchema):
+    """Submit the calibration request - changes status from 'draft' to 'submitted'"""
     req = db.query(CalibrationRequest).filter(
         CalibrationRequest.id == calibration_request_id
     ).first()
@@ -265,6 +331,10 @@ def save_calibration_approval(db: Session, calibration_request_id: int, payload:
     return approval
 
 def get_full_calibration_request(db: Session, calibration_request_id: int):
+    """
+    Get complete calibration request details including documents
+    This is used for the ProductDetail page
+    """
     req = db.query(CalibrationRequest).filter(
         CalibrationRequest.id == calibration_request_id
     ).first()
@@ -272,21 +342,30 @@ def get_full_calibration_request(db: Session, calibration_request_id: int):
     if not req:
         return None
 
+    # Get product details
     product = db.query(CalibrationProductDetails).filter_by(
         calibration_request_id=calibration_request_id
     ).first()
 
+    # Get requirements
     requirements = db.query(CalibrationRequirements).filter_by(
         calibration_request_id=calibration_request_id
     ).first()
 
+    # Get standards
     standards = db.query(CalibrationStandards).filter_by(
         calibration_request_id=calibration_request_id
     ).first()
 
+    # Get lab selection
     lab = db.query(CalibrationLabSelection).filter_by(
         calibration_request_id=calibration_request_id
     ).first()
+
+    # Get uploaded documents
+    documents = db.query(CalibrationTechnicalDocument).filter_by(
+        calibration_request_id=calibration_request_id
+    ).all()
 
     # Convert SQLAlchemy objects to dictionaries for proper JSON serialization
     product_dict = None
@@ -340,6 +419,19 @@ def get_full_calibration_request(db: Session, calibration_request_id: int):
             "remarks": lab.remarks
         }
 
+    # Convert documents to dictionary list
+    documents_list = []
+    if documents:
+        for doc in documents:
+            documents_list.append({
+                "id": doc.id,
+                "doc_type": doc.doc_type,
+                "file_name": doc.file_name,
+                "file_path": doc.file_path,
+                "file_size": doc.file_size,
+                "uploaded_at": doc.created_at.isoformat() if hasattr(doc, 'created_at') and doc.created_at else None
+            })
+
     return {
         "calibration_request": {
             "id": req.id,
@@ -349,5 +441,57 @@ def get_full_calibration_request(db: Session, calibration_request_id: int):
         "product": product_dict,
         "requirements": requirements_dict,
         "standards": standards_dict,
-        "lab": lab_dict
+        "lab": lab_dict,
+        "documents": documents_list
     }
+
+
+# ✅ NEW: Delete calibration request and all related data
+def delete_calibration_request(db: Session, calibration_request_id: int):
+    """
+    Delete calibration request and all associated records
+    Note: Files should be deleted separately in the route handler
+    """
+    # Delete in order to respect foreign key constraints
+    
+    # 1. Delete technical documents
+    db.query(CalibrationTechnicalDocument).filter(
+        CalibrationTechnicalDocument.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 2. Delete product details
+    db.query(CalibrationProductDetails).filter(
+        CalibrationProductDetails.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 3. Delete requirements
+    db.query(CalibrationRequirements).filter(
+        CalibrationRequirements.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 4. Delete standards
+    db.query(CalibrationStandards).filter(
+        CalibrationStandards.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 5. Delete lab selection
+    db.query(CalibrationLabSelection).filter(
+        CalibrationLabSelection.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 6. Delete confirmation
+    db.query(CalibrationConfirmation).filter(
+        CalibrationConfirmation.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 7. Delete approval
+    db.query(CalibrationApproval).filter(
+        CalibrationApproval.calibration_request_id == calibration_request_id
+    ).delete()
+    
+    # 8. Finally, delete the main calibration request
+    db.query(CalibrationRequest).filter(
+        CalibrationRequest.id == calibration_request_id
+    ).delete()
+    
+    db.commit()
