@@ -67,8 +67,8 @@ def save_design_product_details(db: Session, design_request_id: int, payload: De
 
     pd.industry = payload.industry
     pd.industry_other = payload.industry_other
-    pd.preferred_date = payload.preferred_date
-    pd.notes = payload.notes
+    # pd.preferred_date = payload.preferred_date
+    # pd.notes = payload.notes
 
     db.commit()
 
@@ -284,8 +284,8 @@ def get_full_design_request(db: Session, design_request_id: int):
             "software_version": product.software_version,
             "industry": product.industry,
             "industry_other": product.industry_other,
-            "preferred_date": product.preferred_date,
-            "notes": product.notes
+            # "preferred_date": product.preferred_date,
+            # "notes": product.notes
         }
 
     requirements_dict = None

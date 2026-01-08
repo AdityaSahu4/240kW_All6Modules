@@ -21,108 +21,19 @@ export const DataProvider = ({ children }) => {
     }
   }
 
-  // Products state
-  const [products, setProducts] = useState(() => loadFromStorage('techlink_products', [
-    {
-      id: 'BP-2024-001',
-      name: 'EV Charger V2',
-      service: 'EMC Testing',
-      progress: 70,
-      status: 'Testing',
-      description: 'Advanced EV charging system with smart connectivity',
-      createdAt: '2024-01-15',
-      category: 'Electronics',
-    },
-    {
-      id: 'BP-2024-002',
-      name: 'Controller X',
-      service: 'Simulation',
-      progress: 100,
-      status: 'Complete',
-      description: 'High-performance microcontroller for industrial applications',
-      createdAt: '2024-01-10',
-      category: 'Electronics',
-    },
-    {
-      id: 'BP-2026-003',
-      name: 'Transformer',
-      service: 'Environmental Testing',
-      progress: 50,
-      status: 'Testing',
-      description: '240kW Charging Station Transformer',
-      createdAt: '2026-01-01',
-      category: 'Power Equipment',
-    },
-    {
-      id: 'BP-2026-004',
-      name: 'HMI & Communication Interfaces',
-      service: 'Design V&V',
-      progress: 80,
-      status: 'Under Review',
-      description: '240kW Charging Station - HMI & Communication Interfaces Design Verification and Validation',
-      createdAt: '2026-01-01',
-      category: 'Control & Communication',
-    },
-    {
-      id: 'BP-2024-005',
-      name: 'IGBT',
-      service: 'Calibration',
-      progress: 10,
-      status: 'Planned',
-      description: '240kW - Temperature Sensors (IGBT, coolant, cabinet)',
-      createdAt: '2026-01-01',
-      category: 'Power Electronics',
-    },
-    {
-      id: 'BP-2024-006',
-      name: 'Circuit Breaker',
-      service: 'Product Debugging',
-      progress: 30,
-      status: 'Quoted',
-      description: '240kW - Power & Electrical Parts',
-      createdAt: '2026-01-01',
-      category: 'Electrical Protection',
-    },
-  ]))
+  // ⚠️ DEPRECATED: Empty arrays for backward compatibility
+  // These are NOT used anymore - data comes from backend API
+  const [products] = useState([])
+  const [orders] = useState([])
+  const [documents] = useState([])
 
-  // Orders state
-  const [orders, setOrders] = useState(() => loadFromStorage('techlink_orders', [
-    {
-      id: 'ORD-2024-001',
-      productId: 'BP-2024-001',
-      productName: 'EV Charger V2',
-      service: 'EMC Testing',
-      status: 'Completed',
-      completedAt: '2024-01-18',
-      total: 149.00,
-    },
-    {
-      id: 'ORD-2024-002',
-      productId: 'BP-2024-002',
-      productName: 'Controller X',
-      service: 'Simulation',
-      status: 'Cancelled',
-      cancelledAt: '2024-01-12',
-      total: 199.00,
-    },
-    // {
-    //   id: 'ORD-2024-003',
-    //   productId: 'BP-2024-003',
-    //   productName: 'Battery Pack B1',
-    //   service: 'Calibration',
-    //   status: 'Cancelled',
-    //   cancelledAt: '2024-01-22',
-    //   total: 79.00,
-    // },
-  ]))
-
-  // Messages state
+  // ✅ KEEP: Messages state (temporary - until backend messaging is ready)
   const [messages, setMessages] = useState(() => loadFromStorage('techlink_messages', [
     {
       id: 'MSG-001',
       from: 'Lab Team',
-      subject: 'Test Report Ready for EV Charger V2',
-      body: 'Your test report for EV Charger V2 (BP-2024-001) is now ready for review. Please check the Documents section.',
+      subject: 'Test Report Ready',
+      body: 'Your test report is now ready for review. Please check the Documents section.',
       timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       read: false,
       type: 'notification',
@@ -138,11 +49,11 @@ export const DataProvider = ({ children }) => {
     },
   ]))
 
-  // Profile state
+  // ✅ KEEP: Profile state (user personal information)
   const [profile, setProfile] = useState(() => loadFromStorage('techlink_profile', {
     fullName: 'Aditya Kumar Sahu',
     username: 'aditya.sahu',
-    gender: 'Female',
+    gender: 'Male',
     language: 'English',
     companyName: 'TechCorp Industries',
     userId: 'USR-2024-001',
@@ -156,34 +67,11 @@ export const DataProvider = ({ children }) => {
     accountType: 'Business',
     emailAddresses: [
       { email: 'aditya.sahu@techcorp.com', verified: true, addedAt: '1 month ago' }
-    ]
+    ],
+    profileImage: null
   }))
 
-  // Documents state
-  const [documents, setDocuments] = useState(() => loadFromStorage('techlink_documents', [
-    {
-      id: 'DOC-001',
-      productId: 'BP-2024-001',
-      productName: 'EV Charger V2',
-      title: 'Test Report #001',
-      type: 'Test Report',
-      uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      size: '2.4 MB',
-      url: '#',
-    },
-    {
-      id: 'DOC-002',
-      productId: 'BP-2024-001',
-      productName: 'EV Charger V2',
-      title: 'Certificate SS-001',
-      type: 'Certificate',
-      uploadedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      size: '1.8 MB',
-      url: '#',
-    },
-  ]))
-
-  // Settings state
+  // ✅ KEEP: Settings state (user preferences)
   const [settings, setSettings] = useState(() => loadFromStorage('techlink_settings', {
     notifications: true,
     darkMode: false,
@@ -193,14 +81,6 @@ export const DataProvider = ({ children }) => {
 
   // Save to localStorage whenever state changes
   useEffect(() => {
-    saveToStorage('techlink_products', products)
-  }, [products])
-
-  useEffect(() => {
-    saveToStorage('techlink_orders', orders)
-  }, [orders])
-
-  useEffect(() => {
     saveToStorage('techlink_messages', messages)
   }, [messages])
 
@@ -209,44 +89,8 @@ export const DataProvider = ({ children }) => {
   }, [profile])
 
   useEffect(() => {
-    saveToStorage('techlink_documents', documents)
-  }, [documents])
-
-  useEffect(() => {
     saveToStorage('techlink_settings', settings)
   }, [settings])
-
-  // Product functions
-  const addProduct = (product) => {
-    const newProduct = {
-      ...product,
-      id: `BP-2024-${String(products.length + 1).padStart(3, '0')}`,
-      progress: 0,
-      status: 'Awaiting',
-      createdAt: new Date().toISOString().split('T')[0],
-    }
-    setProducts([...products, newProduct])
-    return newProduct
-  }
-
-  const updateProduct = (id, updates) => {
-    setProducts(products.map(p => p.id === id ? { ...p, ...updates } : p))
-  }
-
-  const deleteProduct = (id) => {
-    setProducts(products.filter(p => p.id !== id))
-  }
-
-  // Order functions
-  const addOrder = (order) => {
-    const newOrder = {
-      ...order,
-      id: `ORD-2024-${String(orders.length + 1).padStart(3, '0')}`,
-      createdAt: new Date().toISOString(),
-    }
-    setOrders([...orders, newOrder])
-    return newOrder
-  }
 
   // Message functions
   const addMessage = (message) => {
@@ -268,43 +112,43 @@ export const DataProvider = ({ children }) => {
     setMessages(messages.filter(m => m.id !== id))
   }
 
-  // Document functions
-  const addDocument = (document) => {
-    const newDoc = {
-      ...document,
-      id: `DOC-${String(documents.length + 1).padStart(3, '0')}`,
-      uploadedAt: new Date().toISOString(),
-    }
-    setDocuments([...documents, newDoc])
-    return newDoc
-  }
-
-  const deleteDocument = (id) => {
-    setDocuments(documents.filter(d => d.id !== id))
-  }
+  // ⚠️ DEPRECATED: Dummy functions for backward compatibility
+  const addProduct = () => console.warn('addProduct is deprecated - use backend API')
+  const updateProduct = () => console.warn('updateProduct is deprecated - use backend API')
+  const deleteProduct = () => console.warn('deleteProduct is deprecated - use backend API')
+  const addOrder = () => console.warn('addOrder is deprecated - use backend API')
+  const addDocument = () => console.warn('addDocument is deprecated - use backend API')
+  const deleteDocument = () => console.warn('deleteDocument is deprecated - use backend API')
 
   const value = {
+    // ⚠️ DEPRECATED: Empty arrays for backward compatibility
     products,
     orders,
-    messages,
-    profile,
     documents,
-    settings,
-    setProducts,
-    setOrders,
-    setMessages,
-    setProfile,
-    setDocuments,
-    setSettings,
+    setProducts: () => {},
+    setOrders: () => {},
+    setDocuments: () => {},
     addProduct,
     updateProduct,
     deleteProduct,
     addOrder,
+    addDocument,
+    deleteDocument,
+    
+    // ✅ Active: Messages (temporary)
+    messages,
+    setMessages,
     addMessage,
     markMessageAsRead,
     deleteMessage,
-    addDocument,
-    deleteDocument,
+    
+    // ✅ Active: Profile
+    profile,
+    setProfile,
+    
+    // ✅ Active: Settings
+    settings,
+    setSettings,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
@@ -317,4 +161,3 @@ export const useData = () => {
   }
   return context
 }
-

@@ -41,8 +41,8 @@ class DesignProductDetails(Base):
     industry = Column(JSON)
     industry_other = Column(String)
 
-    preferred_date = Column(String)
-    notes = Column(Text)
+    # preferred_date = Column(String)
+    # notes = Column(Text)
 
 
 class DesignTechnicalDocument(Base):

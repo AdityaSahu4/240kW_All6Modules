@@ -1,41 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useData } from '../../contexts/DataContext'
-import { Plus, Search, Package, Eye, Trash2, X } from 'lucide-react'
+import { Plus, Search, Package, Eye, Trash2, X, Loader, AlertTriangle } from 'lucide-react'
+import { getAllCalibrationRequests, deleteCalibrationRequest } from '../services/calibrationApi'
+import toast from 'react-hot-toast'
 
 function Products() {
   const navigate = useNavigate()
-  const { products, addProduct, deleteProduct } = useData()
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    service: 'EMC Testing',
-    description: '',
-    category: 'Electronics',
-  })
+  const [deleteConfirm, setDeleteConfirm] = useState(null) // Track which product to delete
+  const [deleting, setDeleting] = useState(false)
 
-  const serviceOptions = [
-    'EMC Testing',
-    'Simulation',
-    'Calibration',
-    'Environmental Testing',
-    'Safety Testing',
-    'Performance Testing',
-    'Design V&V',
-    'Product Debugging',
-    'Certification',
-  ]
+  // Fetch products from backend
+  useEffect(() => {
+    fetchProducts()
+  }, [])
 
-  const categoryOptions = [
-    'Electronics',
-    'Energy Storage',
-    'Automotive',
-    'Industrial',
-    'Consumer Goods',
-    'Medical Devices',
-  ]
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const data = await getAllCalibrationRequests()
+      setProducts(data)
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      toast.error('Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -43,50 +37,60 @@ function Products() {
     p.service.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleAddProduct = (e) => {
-    e.preventDefault()
-
-    if (!newProduct.name.trim()) {
-      alert('Please enter a product name')
-      return
-    }
-
-    if (!newProduct.description.trim()) {
-      alert('Please enter a product description')
-      return
-    }
-
-    // Add the product using the context function
-    addProduct(newProduct)
-
-    // Reset form and close modal
-    setShowAddModal(false)
-    setNewProduct({
-      name: '',
-      service: 'EMC Testing',
-      description: '',
-      category: 'Electronics'
-    })
-
-    // Show success message
-    alert('Product added successfully!')
-  }
-
-  const handleDelete = (id, e) => {
+  const handleDeleteClick = (product, e) => {
     e.stopPropagation()
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      deleteProduct(id)
+    setDeleteConfirm(product)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return
+
+    try {
+      setDeleting(true)
+      await deleteCalibrationRequest(deleteConfirm.id)
+      toast.success(`${deleteConfirm.name} deleted successfully`)
+      
+      // Refresh the products list
+      await fetchProducts()
+      setDeleteConfirm(null)
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete product')
+    } finally {
+      setDeleting(false)
     }
   }
 
-  const handleModalClose = () => {
-    setShowAddModal(false)
-    setNewProduct({
-      name: '',
-      service: 'EMC Testing',
-      description: '',
-      category: 'Electronics'
-    })
+  const handleAddProduct = () => {
+    // Redirect to create new calibration request
+    navigate('/services/select')
+  }
+
+  const getStatusColor = (status) => {
+    const statusMap = {
+      'Complete': 'bg-green-100 text-green-700',
+      'Testing': 'bg-blue-100 text-blue-700',
+      'Awaiting': 'bg-yellow-100 text-yellow-700',
+      'Cancelled': 'bg-red-100 text-red-700',
+    }
+    return statusMap[status] || 'bg-gray-100 text-gray-700'
+  }
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Your Products</h2>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -94,8 +98,8 @@ function Products() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Your Products</h2>
         <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
+          onClick={handleAddProduct}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Add Product
@@ -110,7 +114,7 @@ function Products() {
           placeholder="Search products by name, ID, or service..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
@@ -118,47 +122,63 @@ function Products() {
       {filteredProducts.length > 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 divide-y">
           {filteredProducts.map((p, i) => (
-            <Link key={p.id} to={`/customer/products/${p.id}`}>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center">
-                    <Package className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-xs text-gray-500">ID: {p.id}</div>
-                  </div>
-                  <div className="text-sm text-gray-600">{p.service}</div>
-                  <div className={`text-xs px-2 py-1 rounded ${p.status === 'Complete' ? 'bg-green-100 text-green-700' :
-                      p.status === 'Testing' ? 'bg-blue-100 text-blue-700' :
-                        'bg-yellow-100 text-yellow-700'
-                    }`}>
-                    {p.status}
-                  </div>
-                  <div className="text-sm font-semibold text-gray-700">{p.progress}%</div>
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              onClick={() => navigate(`/customer/products/${p.id}`)}
+              className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">
+                    {p.name.substring(0, 2).toUpperCase()}
+                  </span>
                 </div>
-                <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
-                  <Link
-                    to={`/customer/products/${p.id}`}
-                    className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Link>
-                  <button
-                    onClick={(e) => handleDelete(p.id, e)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="flex-1">
+                  <div className="font-medium">{p.name}</div>
+                  <div className="text-xs text-gray-500 flex items-center gap-2">
+                    <span>ID: {p.id}</span>
+                    {p.manufacturer && (
+                      <>
+                        <span>•</span>
+                        <span>By: {p.manufacturer}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </motion.div>
-            </Link>
+                <div className="text-sm text-gray-600 min-w-[120px]">{p.service}</div>
+                <div className={`text-xs px-3 py-1 rounded-full font-medium min-w-[90px] text-center ${getStatusColor(p.status)}`}>
+                  {p.status}
+                </div>
+                <div className="flex items-center gap-2 min-w-[100px]">
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full">
+                    <div
+                      className="h-full bg-blue-600 rounded-full"
+                      style={{ width: `${p.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-semibold text-gray-700 min-w-[40px] text-right">
+                    {p.progress}%
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 ml-4" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => navigate(`/customer/products/${p.id}`)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => handleDeleteClick(p, e)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
           ))}
         </div>
       ) : (
@@ -169,8 +189,8 @@ function Products() {
           </p>
           {!searchTerm && (
             <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+              onClick={handleAddProduct}
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Add Your First Product
             </button>
@@ -178,16 +198,16 @@ function Products() {
         </div>
       )}
 
-      {/* Add Product Modal */}
+      {/* Delete Confirmation Modal */}
       <AnimatePresence>
-        {showAddModal && (
+        {deleteConfirm && (
           <>
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={handleModalClose}
+              onClick={() => !deleting && setDeleteConfirm(null)}
               className="fixed inset-0 bg-black/50 z-40"
             />
 
@@ -198,95 +218,55 @@ function Products() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
             >
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b">
-                  <h3 className="text-xl font-bold">Add New Product</h3>
-                  <button
-                    onClick={handleModalClose}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                    </div>
+                    <h3 className="text-xl font-bold">Delete Product</h3>
+                  </div>
+                  {!deleting && (
+                    <button
+                      onClick={() => setDeleteConfirm(null)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
 
-                {/* Form */}
-                <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
-                  {/* Product Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Product Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                      placeholder="e.g., Smart Battery Pack"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    />
-                  </div>
-
-                  {/* Service Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Service Type *
-                    </label>
-                    <select
-                      value={newProduct.service}
-                      onChange={(e) => setNewProduct({ ...newProduct, service: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    >
-                      {serviceOptions.map(service => (
-                        <option key={service} value={service}>{service}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category *
-                    </label>
-                    <select
-                      value={newProduct.category}
-                      onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    >
-                      {categoryOptions.map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description *
-                    </label>
-                    <textarea
-                      value={newProduct.description}
-                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                      placeholder="Brief description of your product..."
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                    />
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="flex gap-3 pt-4">
+                {/* Content */}
+                <div className="p-6">
+                  <p className="text-gray-600 mb-2">
+                    Are you sure you want to delete <span className="font-semibold text-gray-900">{deleteConfirm.name}</span>?
+                  </p>
+                  <p className="text-sm text-gray-500 mb-6">
+                    This will permanently delete the product and all associated data including documents. This action cannot be undone.
+                  </p>
+                  
+                  <div className="flex gap-3">
                     <button
-                      type="button"
-                      onClick={handleModalClose}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setDeleteConfirm(null)}
+                      disabled={deleting}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
-                      type="button"
-                      onClick={handleAddProduct}
-                      className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                      onClick={handleDeleteConfirm}
+                      disabled={deleting}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      Add Product
+                      {deleting ? (
+                        <>
+                          <Loader className="w-4 h-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete'
+                      )}
                     </button>
                   </div>
                 </div>

@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
-import { useData } from '../../contexts/DataContext'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Package, Search, Plus, Edit, MessageCircle, Eye
 } from 'lucide-react'
-import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { getAllCalibrationRequests } from '../services/calibrationApi'
+import toast from 'react-hot-toast'
 
 function Dashboard() {
   const navigate = useNavigate()
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (!localStorage.getItem("token")) {
@@ -17,8 +19,23 @@ function Dashboard() {
     }
   }, [navigate])
 
-  const { products, messages } = useData()
-  const [searchQuery, setSearchQuery] = useState('')
+  // Fetch calibration requests on component mount
+  useEffect(() => {
+    fetchCalibrationData()
+  }, [])
+
+  const fetchCalibrationData = async () => {
+    try {
+      setLoading(true)
+      const data = await getAllCalibrationRequests()
+      setProducts(data)
+    } catch (error) {
+      console.error('Error fetching calibration data:', error)
+      toast.error('Failed to load calibration requests')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Filter products based on search query
   const filteredProducts = products.filter(p =>
@@ -89,6 +106,14 @@ function Dashboard() {
       case 'Awaiting': return 'bg-yellow-100 text-yellow-700'
       default: return 'bg-gray-100 text-gray-700'
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
@@ -179,114 +204,132 @@ function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.slice(0, 5).map((product, index) => (
-                    <tr key={product.id} className="border-b border-gray-200 last:border-b-0">
-                      <td className="px-6 py-6" colSpan="6">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-4 flex-1">
-                            <span className="text-gray-600 font-medium">{index + 1}</span>
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.slice(0, 5).map((product, index) => (
+                      <tr key={product.id} className="border-b border-gray-200 last:border-b-0">
+                        <td className="px-6 py-6" colSpan="6">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-4 flex-1">
+                              <span className="text-gray-600 font-medium">{index + 1}</span>
 
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getProductIcon(index)}`}>
-                                <span className="font-bold text-sm">
-                                  {product.name.substring(0, 2).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900">{product.name}</div>
-                                <div className="text-xs text-gray-500">ID: {product.id}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-8">
-                            <div className="text-sm text-gray-700 min-w-[100px]">{product.service}</div>
-
-                            <div className="flex items-center gap-2 min-w-[120px]">
-                              <div className="flex-1 h-2 bg-gray-200 rounded-full">
-                                <div
-                                  className="h-full bg-blue-600 rounded-full"
-                                  style={{ width: `${product.progress}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium">{product.progress}%</span>
-                            </div>
-
-                            <div className="min-w-[90px]">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(product.status)}`}>
-                                {product.status}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <Link
-                                to={`/customer/products/${product.id}`}
-                                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                              >
-                                View
-                              </Link>
-                              <button 
-                                onClick={() => navigate(`/customer/products/${product.id}`)}
-                                className="text-gray-600 hover:text-gray-700"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => navigate('/customer/messages')}
-                                className="text-gray-600 hover:text-gray-700 relative"
-                              >
-                                <MessageCircle className="w-4 h-4" />
-                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Timeline - PERFECT ALIGNMENT FIX */}
-                        <div className="ml-8">
-                          <div className="relative">
-                            {/* Connecting Line - Behind everything */}
-                            <div className="absolute left-0 right-0 h-[2px] bg-gray-300 top-[11px]" />
-                            
-                            {/* Timeline Items */}
-                            <div className="flex items-start justify-between relative">
-                              {getProgressStages(product).map((stage, idx) => (
-                                <div key={idx} className="flex flex-col items-center flex-1 relative">
-                                  {/* Circle - Perfectly centered on line */}
-                                  <div className="mb-2 relative z-10">
-                                    {stage.completed ? (
-                                      <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center">
-                                        <div className="w-2 h-2 bg-white rounded-full" />
-                                      </div>
-                                    ) : (
-                                      <div className="w-6 h-6 rounded-full bg-white border-[3px] border-gray-300" />
-                                    )}
-                                  </div>
-                                  
-                                  {/* Label */}
-                                  <div className="text-xs font-medium text-center whitespace-nowrap px-1">
-                                    {stage.label}
-                                  </div>
-                                  
-                                  {/* Date and Time */}
-                                  {stage.date && (
-                                    <>
-                                      <div className="text-xs text-gray-500 text-center mt-1 whitespace-nowrap">
-                                        {stage.date}
-                                      </div>
-                                      <div className="text-xs text-gray-500 text-center whitespace-nowrap">
-                                        {stage.time}
-                                      </div>
-                                    </>
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getProductIcon(index)}`}>
+                                  <span className="font-bold text-sm">
+                                    {product.name.substring(0, 2).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="font-medium text-gray-900">{product.name}</div>
+                                  <div className="text-xs text-gray-500">ID: {product.id}</div>
+                                  {product.manufacturer && (
+                                    <div className="text-xs text-gray-400">By: {product.manufacturer}</div>
                                   )}
                                 </div>
-                              ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-8">
+                              <div className="text-sm text-gray-700 min-w-[100px]">{product.service}</div>
+
+                              <div className="flex items-center gap-2 min-w-[120px]">
+                                <div className="flex-1 h-2 bg-gray-200 rounded-full">
+                                  <div
+                                    className="h-full bg-blue-600 rounded-full"
+                                    style={{ width: `${product.progress}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm font-medium">{product.progress}%</span>
+                              </div>
+
+                              <div className="min-w-[90px]">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(product.status)}`}>
+                                  {product.status}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <Link
+                                  to={`/customer/products/${product.id}`}
+                                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                                >
+                                  View
+                                </Link>
+                                <button 
+                                  onClick={() => navigate(`/customer/products/${product.id}`)}
+                                  className="text-gray-600 hover:text-gray-700"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => navigate('/customer/messages')}
+                                  className="text-gray-600 hover:text-gray-700 relative"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
+
+                          {/* Timeline - PERFECT ALIGNMENT FIX */}
+                          <div className="ml-8">
+                            <div className="relative">
+                              {/* Connecting Line - Behind everything */}
+                              <div className="absolute left-0 right-0 h-[2px] bg-gray-300 top-[11px]" />
+                              
+                              {/* Timeline Items */}
+                              <div className="flex items-start justify-between relative">
+                                {getProgressStages(product).map((stage, idx) => (
+                                  <div key={idx} className="flex flex-col items-center flex-1 relative">
+                                    {/* Circle - Perfectly centered on line */}
+                                    <div className="mb-2 relative z-10">
+                                      {stage.completed ? (
+                                        <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center">
+                                          <div className="w-2 h-2 bg-white rounded-full" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-6 h-6 rounded-full bg-white border-[3px] border-gray-300" />
+                                      )}
+                                    </div>
+                                    
+                                    {/* Label */}
+                                    <div className="text-xs font-medium text-center whitespace-nowrap px-1">
+                                      {stage.label}
+                                    </div>
+                                    
+                                    {/* Date and Time */}
+                                    {stage.date && (
+                                      <>
+                                        <div className="text-xs text-gray-500 text-center mt-1 whitespace-nowrap">
+                                          {stage.date}
+                                        </div>
+                                        <div className="text-xs text-gray-500 text-center whitespace-nowrap">
+                                          {stage.time}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                        <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p>No calibration requests found</p>
+                        <Link
+                          to="/services/select"
+                          className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Create Your First Request
+                        </Link>
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -315,9 +358,11 @@ function Dashboard() {
                         <div className="font-medium">
                           {product.service} - {product.name}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Started {Math.floor(Math.random() * 5) + 1} days ago
-                        </div>
+                        {product.testType && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Test Type: {product.testType}
+                          </div>
+                        )}
                       </div>
                       <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                         In Progress
