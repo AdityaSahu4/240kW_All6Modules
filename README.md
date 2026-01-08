@@ -26,7 +26,7 @@ python -m venv .venv
 ```bash
 pip install -r requirements.txt
 ```
-5. If Labs database is not created or availale run the following script (make sure to have a labs.csv file in the /backend/data folder:
+5. If Labs database is not created or availale run the following script (make sure to have a labs.csv file in the /backend/data folder):
 ```bash
 python lab_loading.py
 ```
