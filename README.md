@@ -26,11 +26,15 @@ python -m venv .venv
 ```bash
 pip install -r requirements.txt
 ```
-5. Run the backend server
+5. If Labs database is not created or availale run the following script (make sure to have a labs.csv file in the /backend/data folder):
+```bash
+python lab_loading.py
+```
+6. Run the backend server
 ```bash
 uvicorn app:app --reload
 ```
-6. Access backend URLs
+7. Access backend URLs
 ```bash
 http://127.0.0.1:8000
 http://127.0.0.1:8000/docs
