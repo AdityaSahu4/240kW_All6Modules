@@ -1,281 +1,221 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import * as labAPI from '../pages/lab/labRequests'
 
 const LabDataContext = createContext()
 
 export const LabDataProvider = ({ children }) => {
-  // Load data from localStorage or use defaults
-  const loadFromStorage = (key, defaultValue) => {
+  const [labRequests, setLabRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Technicians state (can be moved to backend later)
+  const [technicians, setTechnicians] = useState([
+    { id: 1, name: 'John Smith', specialization: 'EMC Testing', status: 'Available' },
+    { id: 2, name: 'Aditya Kumar Sahu', specialization: 'Safety Testing', status: 'Busy' },
+    { id: 3, name: 'Mike Davis', specialization: 'Thermal Testing', status: 'Available' },
+    { id: 4, name: 'Emily Chen', specialization: 'EMC Testing', status: 'Available' },
+  ])
+
+  // Schedule state (can be moved to backend later)
+  const [schedule, setSchedule] = useState([])
+
+  // Fetch lab requests from backend
+  const fetchRequests = async () => {
     try {
-      const item = localStorage.getItem(key)
-      return item ? JSON.parse(item) : defaultValue
-    } catch {
-      return defaultValue
+      setLoading(true)
+      setError(null)
+      const data = await labAPI.fetchLabRequests()
+      
+      console.log('Fetched lab requests:', data)
+      
+      // Transform backend data to frontend format
+      const transformedData = data.map(req => ({
+        id: req.request_code || `LR-${String(req.id).padStart(4, '0')}`,
+        backendId: req.id,
+        productName: req.product_name,
+        service: req.service_type,
+        date: req.created_date ? new Date(req.created_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        status: req.status,
+        assignedTo: req.assigned_engineer_id || null,
+        priority: 'Normal', // Default, can be added to backend
+        progress: 0, // Will be fetched from full request if needed
+      }))
+      
+      console.log('Transformed lab requests:', transformedData)
+      setLabRequests(transformedData)
+    } catch (err) {
+      console.error('Error fetching lab requests:', err)
+      setError(err.message || 'Failed to fetch lab requests')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const saveToStorage = (key, value) => {
+  // Initial fetch
+  useEffect(() => {
+    fetchRequests()
+  }, [])
+
+  // Create new lab request
+  const createRequest = async (productName, serviceType) => {
     try {
-      localStorage.setItem(key, JSON.stringify(value))
-    } catch (error) {
-      console.error('Error saving to localStorage:', error)
+      const newRequest = await labAPI.createLabRequest(productName, serviceType)
+      console.log('Created lab request:', newRequest)
+      await fetchRequests() // Refresh the list
+      return newRequest
+    } catch (err) {
+      console.error('Error creating lab request:', err)
+      throw err
     }
   }
 
-  // Lab Requests state
-  const [labRequests, setLabRequests] = useState(() => loadFromStorage('techlink_lab_requests', [
-    {
-      id: 'LR-1001',
-      productName: 'Smart Router X200',
-      service: 'EMC Testing',
-      date: '2024-01-15',
-      status: 'In Progress',
-      priority: 'Normal',
-      assignedTo: 'VALOR01',
-      customerId: 'BP-2024-001',
-      progress: 65,
-      estimatedCompletion: '2024-01-20',
-      notes: 'Testing in progress, initial results look good',
-    },
-    {
-      id: 'LR-1002',
-      productName: 'Smart Router X200',
-      service: 'EMC Testing',
-      date: '2024-01-15',
-      status: 'Completed',
-      priority: 'Normal',
-      assignedTo: 'VALOR01',
-      customerId: 'BP-2024-001',
-      progress: 100,
-      completedAt: '2024-01-18',
-      testResults: 'All tests passed successfully',
-    },
-    {
-      id: 'LR-1003',
-      productName: 'IoT Sensor Hub',
-      service: 'Safety Testing',
-      date: '2024-01-16',
-      status: 'Completed',
-      priority: 'High',
-      assignedTo: 'VALOR02',
-      customerId: 'BP-2024-002',
-      progress: 100,
-      completedAt: '2024-01-19',
-      testResults: 'Safety standards met',
-    },
-    {
-      id: 'LR-1004',
-      productName: 'IoT Sensor Hub',
-      service: 'Safety Testing',
-      date: '2024-01-16',
-      status: 'In Progress',
-      priority: 'High',
-      assignedTo: 'VALOR02',
-      customerId: 'BP-2024-002',
-      progress: 45,
-      estimatedCompletion: '2024-01-22',
-      notes: 'Thermal testing phase',
-    },
-    {
-      id: 'LR-1005',
-      productName: 'Power Adapter 65W',
-      service: 'Thermal Testing',
-      date: '2024-01-14',
-      status: 'In Progress',
-      priority: 'Normal',
-      assignedTo: 'VALOR03',
-      customerId: 'BP-2024-003',
-      progress: 80,
-      estimatedCompletion: '2024-01-21',
-      notes: 'Final validation stage',
-    },
-    {
-      id: 'LR-1006',
-      productName: 'Smart Router X200',
-      service: 'EMC Testing',
-      date: '2024-01-15',
-      status: 'Pending',
-      priority: 'Normal',
-      assignedTo: null,
-      customerId: 'BP-2024-001',
-      progress: 0,
-    },
-    {
-      id: 'LR-1007',
-      productName: 'Wi-Fi Router W7',
-      service: 'EMC Testing',
-      date: '2024-01-15',
-      status: 'Rejected',
-      priority: 'Normal',
-      assignedTo: 'VALOR01',
-      customerId: 'BP-2024-004',
-      progress: 0,
-      rejectedAt: '2024-01-16',
-      rejectionReason: 'Insufficient documentation provided',
-    },
-    {
-      id: 'LR-1008',
-      productName: 'IoT Sensor Hub',
-      service: 'Safety Testing',
-      date: '2024-01-16',
-      status: 'Pending',
-      priority: 'High',
-      assignedTo: null,
-      customerId: 'BP-2024-002',
-      progress: 0,
-    },
-    {
-      id: 'LR-1009',
-      productName: 'Smart MCB',
-      service: 'Safety Testing',
-      date: '2024-01-16',
-      status: 'Rejected',
-      priority: 'Normal',
-      assignedTo: 'VALOR02',
-      customerId: 'BP-2024-005',
-      progress: 0,
-      rejectedAt: '2024-01-17',
-      rejectionReason: 'Product does not meet safety requirements',
-    },
-    {
-      id: 'LR-1010',
-      productName: 'Smart Router X300',
-      service: 'EMC Testing',
-      date: '2024-01-17',
-      status: 'Pending',
-      priority: 'High',
-      assignedTo: null,
-      customerId: 'BP-2024-006',
-      progress: 0,
-    },
-    {
-      id: 'LR-1011',
-      productName: 'Sensor Pro',
-      service: 'Safety Testing',
-      date: '2024-01-17',
-      status: 'Pending',
-      priority: 'Normal',
-      assignedTo: null,
-      customerId: 'BP-2024-007',
-      progress: 0,
-    },
-  ]))
+  // Update request status
+  const updateRequestStatus = async (id, newStatus, additionalData = {}) => {
+    try {
+      const request = labRequests.find(r => r.id === id || r.backendId === id)
+      if (!request) throw new Error('Request not found')
 
-  // Technicians state
-  const [technicians, setTechnicians] = useState(() => loadFromStorage('techlink_technicians', [
-    { id: 'VALOR01', name: 'John Smith', specialization: 'EMC Testing', status: 'Available' },
-    { id: 'VALOR02', name: 'Aditya Kumar Sahu', specialization: 'Safety Testing', status: 'Busy' },
-    { id: 'VALOR03', name: 'Mike Davis', specialization: 'Thermal Testing', status: 'Available' },
-    { id: 'VALOR04', name: 'Emily Chen', specialization: 'EMC Testing', status: 'Available' },
-  ]))
-
-  // Schedule state
-  const [schedule, setSchedule] = useState(() => loadFromStorage('techlink_lab_schedule', [
-    {
-      id: 'SCH-001',
-      requestId: 'LR-1001',
-      productName: 'Smart Router X200',
-      service: 'EMC Testing',
-      technicianId: 'VALOR01',
-      technicianName: 'John Smith',
-      startTime: '2024-01-17T10:00:00',
-      endTime: '2024-01-17T14:00:00',
-      status: 'Scheduled',
-    },
-    {
-      id: 'SCH-002',
-      requestId: 'LR-1004',
-      productName: 'IoT Sensor Hub',
-      service: 'Safety Testing',
-      technicianId: 'VALOR02',
-      technicianName: 'Aditya Kumar Sahu',
-      startTime: '2024-01-17T14:00:00',
-      endTime: '2024-01-17T18:00:00',
-      status: 'Scheduled',
-    },
-    {
-      id: 'SCH-003',
-      requestId: 'LR-1005',
-      productName: 'Power Adapter 65W',
-      service: 'Thermal Testing',
-      technicianId: 'VALOR03',
-      technicianName: 'Mike Davis',
-      startTime: '2024-01-18T09:00:00',
-      endTime: '2024-01-18T13:00:00',
-      status: 'Scheduled',
-    },
-  ]))
-
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    saveToStorage('techlink_lab_requests', labRequests)
-  }, [labRequests])
-
-  useEffect(() => {
-    saveToStorage('techlink_technicians', technicians)
-  }, [technicians])
-
-  useEffect(() => {
-    saveToStorage('techlink_lab_schedule', schedule)
-  }, [schedule])
-
-  // Lab Request functions
-  const updateRequest = (id, updates) => {
-    setLabRequests(labRequests.map(r => r.id === id ? { ...r, ...updates } : r))
-  }
-
-  const assignRequest = (requestId, technicianId) => {
-    const technician = technicians.find(t => t.id === technicianId)
-    if (!technician) return
-
-    updateRequest(requestId, {
-      assignedTo: technicianId,
-      status: 'In Progress',
-      progress: 10,
-    })
-
-    // Update technician status if needed
-    if (technician.status === 'Available') {
-      setTechnicians(technicians.map(t => 
-        t.id === technicianId ? { ...t, status: 'Busy' } : t
+      const userId = 'system' // Replace with actual user ID from auth context
+      const result = await labAPI.updateStatus(request.backendId, newStatus, userId)
+      
+      console.log('Status updated:', result)
+      
+      // Update local state
+      setLabRequests(labRequests.map(r => 
+        r.id === id || r.backendId === id ? { ...r, status: newStatus, ...additionalData } : r
       ))
+      
+      return result
+    } catch (err) {
+      console.error('Error updating status:', err)
+      throw err
     }
   }
 
-  const updateRequestStatus = (id, newStatus, additionalData = {}) => {
-    const updates = { status: newStatus, ...additionalData }
-    
-    if (newStatus === 'Completed') {
-      updates.progress = 100
-      updates.completedAt = new Date().toISOString().split('T')[0]
-    } else if (newStatus === 'Rejected') {
-      updates.rejectedAt = new Date().toISOString().split('T')[0]
-    } else if (newStatus === 'In Progress') {
-      updates.progress = Math.max(10, updates.progress || 10)
+  // Update request progress
+  const updateRequestProgress = async (id, progress, notes = '') => {
+    try {
+      const request = labRequests.find(r => r.id === id || r.backendId === id)
+      if (!request) throw new Error('Request not found')
+
+      const userId = 'system' // Replace with actual user ID from auth context
+      const result = await labAPI.addProgress(request.backendId, progress, notes, userId)
+      
+      console.log('Progress updated:', result)
+      
+      // Update local state
+      setLabRequests(labRequests.map(r => 
+        r.id === id || r.backendId === id ? { ...r, progress } : r
+      ))
+      
+      return result
+    } catch (err) {
+      console.error('Error updating progress:', err)
+      throw err
     }
-
-    updateRequest(id, updates)
   }
 
-  const updateRequestProgress = (id, progress) => {
-    updateRequest(id, { progress: Math.min(100, Math.max(0, progress)) })
-  }
+  // Assign request to technician
+  const assignRequest = async (requestId, technicianId) => {
+    try {
+      const request = labRequests.find(r => r.id === requestId || r.backendId === requestId)
+      if (!request) throw new Error('Request not found')
 
-  // Schedule functions
-  const addScheduleItem = (item) => {
-    const newItem = {
-      ...item,
-      id: `SCH-${String(schedule.length + 1).padStart(3, '0')}`,
+      const technician = technicians.find(t => t.id === technicianId)
+      if (!technician) throw new Error('Technician not found')
+
+      const userId = 'system' // Replace with actual user ID from auth context
+      const result = await labAPI.assignEngineer(request.backendId, technicianId, userId)
+
+      console.log('Engineer assigned:', result)
+
+      // Update local state
+      setLabRequests(labRequests.map(r =>
+        r.id === requestId || r.backendId === requestId ? {
+          ...r,
+          assignedTo: technicianId,
+          status: 'In Progress',
+          progress: 10,
+        } : r
+      ))
+
+      // Update technician status
+      if (technician.status === 'Available') {
+        setTechnicians(technicians.map(t =>
+          t.id === technicianId ? { ...t, status: 'Busy' } : t
+        ))
+      }
+      
+      return result
+    } catch (err) {
+      console.error('Error assigning request:', err)
+      throw err
     }
-    setSchedule([...schedule, newItem])
-    return newItem
   }
 
+  // Get full request details
+  const getFullRequest = async (id) => {
+    try {
+      const request = labRequests.find(r => r.id === id || r.backendId === id)
+      if (!request) {
+        // If not found in local state, try to fetch directly by ID
+        const fullData = await labAPI.fetchFullRequest(id)
+        return fullData
+      }
+
+      const fullData = await labAPI.fetchFullRequest(request.backendId)
+      return fullData
+    } catch (err) {
+      console.error('Error fetching full request:', err)
+      throw err
+    }
+  }
+
+  // Create schedule
+  const addScheduleItem = async (item) => {
+    try {
+      const request = labRequests.find(r => r.id === item.requestId || r.backendId === item.requestId)
+      if (!request) throw new Error('Request not found')
+
+      const payload = {
+        engineer_id: item.technicianId,
+        start_datetime: item.startTime,
+        end_datetime: item.endTime,
+        schedule_status: item.status || 'Scheduled',
+      }
+
+      const result = await labAPI.createSchedule(request.backendId, payload)
+      
+      console.log('Schedule created:', result)
+      
+      // Update local schedule state
+      const newItem = {
+        ...item,
+        id: `SCH-${String(schedule.length + 1).padStart(3, '0')}`,
+      }
+      setSchedule([...schedule, newItem])
+      return newItem
+    } catch (err) {
+      console.error('Error creating schedule:', err)
+      throw err
+    }
+  }
+
+  // Update schedule item (local only for now)
   const updateScheduleItem = (id, updates) => {
     setSchedule(schedule.map(s => s.id === id ? { ...s, ...updates } : s))
   }
 
+  // Delete schedule item (local only for now)
   const deleteScheduleItem = (id) => {
     setSchedule(schedule.filter(s => s.id !== id))
+  }
+
+  // Update request (generic)
+  const updateRequest = (id, updates) => {
+    setLabRequests(labRequests.map(r => 
+      r.id === id || r.backendId === id ? { ...r, ...updates } : r
+    ))
   }
 
   // Statistics
@@ -305,7 +245,7 @@ export const LabDataProvider = ({ children }) => {
       pending,
       activeTests: inProgress,
       completedThisWeek,
-      avgTurnaround: avgTurnaround.toFixed(1) + 'd',
+      avgTurnaround: avgTurnaround > 0 ? avgTurnaround.toFixed(1) + 'd' : '0d',
     }
   }
 
@@ -313,9 +253,13 @@ export const LabDataProvider = ({ children }) => {
     labRequests,
     technicians,
     schedule,
+    loading,
+    error,
     setLabRequests,
     setTechnicians,
     setSchedule,
+    fetchRequests,
+    createRequest,
     updateRequest,
     assignRequest,
     updateRequestStatus,
@@ -323,6 +267,7 @@ export const LabDataProvider = ({ children }) => {
     addScheduleItem,
     updateScheduleItem,
     deleteScheduleItem,
+    getFullRequest,
     getStats,
   }
 
@@ -336,4 +281,3 @@ export const useLabData = () => {
   }
   return context
 }
-
