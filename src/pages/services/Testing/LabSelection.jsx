@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, Clock, DollarSign, RefreshCw } from 'lucide-react'
 import { fetchFullTestingRequest } from '../testingApi'
+import { fetchLabs, fetchLabFilters, fetchCitiesByState } from '../labsApi'
 
 function LabSelection({ formData, updateFormData, testingRequestId }) {
-  // State for review data from database
+  // ---------------- REVIEW DATA ----------------
   const [reviewData, setReviewData] = useState({
     eutName: '',
     testingRequirements: [],
@@ -11,87 +12,85 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
   })
   const [loadingReview, setLoadingReview] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  // Initialize region from formData or use empty values
-  const [selectedCountry, setSelectedCountry] = useState(formData.region?.country || '')
+
+  // ---------------- REGION ----------------
+  const [selectedCountry, setSelectedCountry] = useState(
+    formData.region?.country || 'India'
+  )
   const [selectedState, setSelectedState] = useState(formData.region?.state || '')
   const [selectedCity, setSelectedCity] = useState(formData.region?.city || '')
 
-  const countries = ['India', 'USA', 'UK', 'Germany']
-  const states = ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat']
-  const cities = ['Pune', 'Mumbai', 'Bengaluru', 'Chennai']
+  const [states, setStates] = useState([])
+  const [cities, setCities] = useState([])
 
-  // Labs with location data
-  const allLabs = [
-    {
-      id: 'tuv-india',
-      name: 'TUV INDIA PVT. LTD., BANER, PUNE, MAHARASHTRA, INDIA',
-      rating: 4.8,
-      country: 'India',
-      state: 'Maharashtra',
-      city: 'Pune'
-    },
-    {
-      id: 'sgs-india',
-      name: 'SGS INDIA PRIVATE LIMITED, BENGALURU, KARNATAKA, INDIA',
-      rating: 4.6,
-      country: 'India',
-      state: 'Karnataka',
-      city: 'Bengaluru'
-    },
-    {
-      id: 'abb-india',
-      name: 'ABB INDIA LIMITED- ELSP-TESTING LABORATORY',
-      rating: 4.5,
-      country: 'India',
-      state: 'Maharashtra',
-      city: 'Pune'
-    },
-    {
-      id: 'herrmann',
-      name: 'HERRMANN RESEARCH PRODUCTS AND LABORATORIES PVT',
-      rating: 4.7,
-      country: 'India',
-      state: 'Karnataka',
-      city: 'Bengaluru'
-    },
-    {
-      id: 'marquis',
-      name: 'MARQUIS TECHNOLOGIES PRIVATE LIMITED',
-      rating: 4.4,
-      country: 'India',
-      state: 'Tamil Nadu',
-      city: 'Chennai'
-    },
-    {
-      id: 'meter-testing',
-      name: 'METER TESTING LABORATORY, RRVPNL',
-      rating: 4.3,
-      country: 'India',
-      state: 'Gujarat',
-      city: 'Mumbai'
-    },
-  ]
+  // ---------------- LABS ----------------
+  const [labs, setLabs] = useState([])
 
-  // Filter labs based on selected Country, State, City
-  const filteredLabs = useMemo(() => {
-    return allLabs.filter(lab => {
-      const countryMatch = !selectedCountry || lab.country === selectedCountry
-      const stateMatch = !selectedState || lab.state === selectedState
-      const cityMatch = !selectedCity || lab.city === selectedCity
-      return countryMatch && stateMatch && cityMatch
-    })
+  // ---------- LOAD FILTER OPTIONS ----------
+  useEffect(() => {
+    async function loadFilters() {
+      try {
+        const data = await fetchLabFilters()
+        setStates(data.states || [])
+        setCities(data.cities || [])
+      } catch (err) {
+        console.error('Failed to load lab filters', err)
+      }
+    }
+
+    loadFilters()
+  }, [])
+
+  // ---------- LOAD LABS WHEN REGION CHANGES ----------
+  useEffect(() => {
+    async function loadLabs() {
+      try {
+        const data = await fetchLabs({
+          country: selectedCountry || undefined,
+          state: selectedState || undefined,
+          city: selectedCity || undefined
+        })
+
+        setLabs(data || [])
+      } catch (err) {
+        console.error('Failed to load labs', err)
+      }
+    }
+
+    loadLabs()
   }, [selectedCountry, selectedState, selectedCity])
 
-  // Function to load review data
+  // reset city when state changes
+  useEffect(() => setSelectedCity(''), [selectedState])
+
+  // ---------- FILTERED LIST ----------
+  const filteredLabs = useMemo(() => {
+    const norm = (v) => (v || '').toLowerCase().trim()
+
+    return labs.filter((lab) => {
+      const countryMatch =
+        !selectedCountry || norm(lab.country) === norm(selectedCountry)
+
+      const stateMatch =
+        !selectedState || norm(lab.state) === norm(selectedState)
+
+      const cityMatch =
+        !selectedCity || norm(lab.city) === norm(selectedCity)
+
+      return countryMatch && stateMatch && cityMatch
+    })
+  }, [labs, selectedCountry, selectedState, selectedCity])
+
+  // ---------------- REVIEW DATA (unchanged) ----------------
   const loadReviewData = async (isManualRefresh = false) => {
     if (!testingRequestId) {
-      // Fallback to formData if no request ID
       setReviewData({
         eutName: formData.eutName || '',
         testingRequirements: formData.selectedTests || [],
         testingStandards: formData.selectedStandards || []
       })
       setLoadingReview(false)
+
       if (isManualRefresh) {
         setRefreshing(false)
         alert('No testing request ID found. Please complete previous steps first.')
@@ -100,15 +99,10 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
     }
 
     try {
-      if (isManualRefresh) {
-        setRefreshing(true)
-      } else {
-        setLoadingReview(true)
-      }
+      if (isManualRefresh) setRefreshing(true)
+      else setLoadingReview(true)
 
-      console.log('Fetching data for testing request ID:', testingRequestId)
       const data = await fetchFullTestingRequest(testingRequestId)
-      console.log('Received data:', data)
 
       setReviewData({
         eutName: data.product?.eut_name || '',
@@ -116,12 +110,10 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
         testingStandards: data.standards?.standards || []
       })
 
-      if (isManualRefresh) {
-        alert('Review details refreshed successfully!')
-      }
+      if (isManualRefresh) alert('Review details refreshed successfully!')
     } catch (error) {
       console.error('Failed to load review data:', error)
-      // Fallback to formData if API fails
+
       setReviewData({
         eutName: formData.eutName || '',
         testingRequirements: formData.selectedTests || [],
@@ -137,18 +129,14 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
     }
   }
 
-  // Manual refresh handler
-  const handleRefreshDetails = () => {
-    loadReviewData(true)
-  }
+  const handleRefreshDetails = () => loadReviewData(true)
 
-  // Fetch review data from database on mount
   useEffect(() => {
     loadReviewData(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testingRequestId])
 
-  // Update formData when region changes
+  // -------- persist region into formData --------
   useEffect(() => {
     const newRegion = {
       country: selectedCountry || null,
@@ -156,44 +144,61 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
       city: selectedCity || null
     }
 
-    // Only update if region actually changed
-    const currentRegion = formData.region || {}
+    const current = formData.region || {}
+
     if (
-      currentRegion.country !== newRegion.country ||
-      currentRegion.state !== newRegion.state ||
-      currentRegion.city !== newRegion.city
+      current.country !== newRegion.country ||
+      current.state !== newRegion.state ||
+      current.city !== newRegion.city
     ) {
       updateFormData({ region: newRegion })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry, selectedState, selectedCity])
 
+  // reload cities whenever state changes
+  useEffect(() => {
+    async function loadCities() {
+      if (!selectedState) {
+        // fallback: show all cities from filters
+        const data = await fetchLabFilters()
+        setCities(data.cities || [])
+        return
+      }
 
-  // const [selectedLabs, setSelectedLabs] = useState([recommendedLabs[0].id])
+      try {
+        const list = await fetchCitiesByState(selectedState)
+        setCities(list || [])
+      } catch (err) {
+        console.error("Failed loading cities", err)
+      }
+    }
 
-  // const toggleLabSelection = (labId) => {
-  //   if (selectedLabs.includes(labId)) {
-  //     setSelectedLabs(selectedLabs.filter(id => id !== labId))
-  //   } else {
-  //     setSelectedLabs([...selectedLabs, labId])
-  //   }
-  // }
+    loadCities()
+  }, [selectedState])
 
+
+  // ---------------- UI (unchanged) ----------------
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Labs</h1>
       </div>
 
-      {/* Region Selection */}
+      {/* REGION */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="font-medium text-gray-700 mb-4">Region :</h3>
 
-        <h4 className="text-center font-medium text-gray-700 mb-4">---------- Select Region ----------</h4>
+        <h4 className="text-center font-medium text-gray-700 mb-4">
+          ---------- Select Region ----------
+        </h4>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
+          {/* Country */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Country
+            </label>
             <div className="relative">
               <select
                 value={selectedCountry}
@@ -201,16 +206,21 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select</option>
-                {countries.map((country) => (
-                  <option key={country} value={country}>{country}</option>
+                {[selectedCountry || 'India'].map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
+          {/* State */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              State
+            </label>
             <div className="relative">
               <select
                 value={selectedState}
@@ -219,15 +229,20 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
               >
                 <option value="">Select</option>
                 {states.map((state) => (
-                  <option key={state} value={state}>{state}</option>
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
+          {/* City */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              City
+            </label>
             <div className="relative">
               <select
                 value={selectedCity}
@@ -235,31 +250,41 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select</option>
+
                 {cities.map((city) => (
-                  <option key={city} value={city}>{city}</option>
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
                 ))}
               </select>
+
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* Recommended Labs */}
-        <h4 className="text-center font-medium text-gray-700 mb-4">---------- Select Lab ----------</h4>
+        {/* LAB LIST */}
+        <h4 className="text-center font-medium text-gray-700 mb-4">
+          ---------- Select Lab ----------
+        </h4>
 
         <div>
           <h5 className="font-semibold text-gray-900 mb-4">
             Recommended Labs
             {(selectedCountry || selectedState || selectedCity) && (
               <span className="text-sm font-normal text-gray-500 ml-2">
-                ({filteredLabs.length} lab{filteredLabs.length !== 1 ? 's' : ''} found)
+                ({filteredLabs.length} lab
+                {filteredLabs.length !== 1 ? 's' : ''} found)
               </span>
             )}
           </h5>
+
           {filteredLabs.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No labs found matching the selected filters.</p>
-              <p className="text-sm mt-2">Please adjust your Country, State, or City selection.</p>
+              <p className="text-sm mt-2">
+                Please adjust your Country, State, or City selection.
+              </p>
             </div>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
@@ -270,25 +295,33 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
                 >
                   <input
                     type="checkbox"
-                    checked={Array.isArray(formData.selectedLabs) && formData.selectedLabs.includes(lab.name)}
+                    checked={
+                      Array.isArray(formData.selectedLabs) &&
+                      formData.selectedLabs.includes(lab.lab_name)
+                    }
                     onChange={() => {
                       const current = Array.isArray(formData.selectedLabs)
                         ? formData.selectedLabs
                         : []
 
-                      if (current.includes(lab.name)) {
+                      if (current.includes(lab.lab_name)) {
                         updateFormData({
-                          selectedLabs: current.filter(l => l !== lab.name)
+                          selectedLabs: current.filter(
+                            (l) => l !== lab.lab_name
+                          )
                         })
                       } else {
                         updateFormData({
-                          selectedLabs: [...current, lab.name]
+                          selectedLabs: [...current, lab.lab_name]
                         })
                       }
                     }}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm flex-1 font-medium text-gray-900">{lab.name}</span>
+
+                  <span className="text-sm flex-1 font-medium text-gray-900">
+                    {lab.lab_name} — {lab.city}, {lab.state}
+                  </span>
                 </label>
               ))}
             </div>
@@ -457,4 +490,3 @@ function LabSelection({ formData, updateFormData, testingRequestId }) {
 }
 
 export default LabSelection
-
