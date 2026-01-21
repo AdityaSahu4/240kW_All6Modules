@@ -2,20 +2,20 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useRef, useEffect } from 'react'
 import { useData } from '../contexts/DataContext'
-import {
-  LayoutDashboard,
-  User,
-  Package,
-  FileText,
-  History,
-  MessageSquare,
-  Settings,
-  LogOut,
-  Bell,
-  Search,
-  CheckCircle,
-  AlertCircle,
-  Info,
+import { 
+  LayoutDashboard, 
+  User, 
+  Package, 
+  FileText, 
+  History, 
+  MessageSquare, 
+  Settings, 
+  LogOut, 
+  Bell, 
+  Search, 
+  CheckCircle, 
+  AlertCircle, 
+  Info, 
   X,
 } from 'lucide-react'
 import logo from '../assets/techlink-logo.svg'
@@ -99,13 +99,15 @@ function DashboardLayout() {
       {/* Top bar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img
-              src={logo}
-              alt="Techlink Logo"
-              className="h-16 w-auto"
-            />
-          </div>
+          <NavLink to="/" className="flex items-center space-x-3">
+            <motion.img 
+            src={logo}
+            alt="Techlink Logo"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+            className="h-16 w-auto flex-shrink-0"
+              />
+          </NavLink>
           <div className="hidden md:flex items-center gap-3 w-1/2">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
